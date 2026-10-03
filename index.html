@@ -105,19 +105,30 @@
   <!-- STATS -->
   <div class="stats" id="stats"></div>
 
-  <!-- FORMS -->
-  <div class="grid grid-2 section">
-    <div class="card">
-      <h2>➕ Add Member</h2>
-      <div class="form-row">
-        <input id="mName" placeholder="Member name">
-        <button onclick="addMember()">Add</button>
-      </div>
-      <div class="table-wrap">
-        <table id="memberTable"></table>
-      </div>
+  <!-- DAILY EXPENSE (moved to top) -->
+  <div class="card section">
+    <h2>🧾 Daily Expense</h2>
+    <div class="form-row">
+      <input id="expDate" type="date">
+      <input id="expAmount" type="number" placeholder="Amount">
     </div>
+    <div class="form-row">
+      <select id="expMember"></select>
+      <input id="expDesc" placeholder="Description" style="flex:2">
+      <button onclick="addExpense()">Add</button>
+    </div>
+  </div>
 
+  <!-- SUMMARY -->
+  <div class="card section">
+    <h2>📊 Member Wise Summary (as on <span id="asOnDate"></span>)</h2>
+    <div class="table-wrap">
+      <table id="summaryTable"></table>
+    </div>
+  </div>
+
+  <!-- ADVANCE + MEMBER ADD -->
+  <div class="grid grid-2 section">
     <div class="card">
       <h2>💰 Member Wise Advance</h2>
       <div class="form-row">
@@ -130,40 +141,29 @@
         <table id="advanceTable"></table>
       </div>
     </div>
-  </div>
-
-  <div class="grid grid-2 section">
-    <div class="card">
-      <h2>🧾 Daily Expense</h2>
-      <div class="form-row">
-        <input id="expDate" type="date">
-        <input id="expAmount" type="number" placeholder="Amount">
-      </div>
-      <div class="form-row">
-        <select id="expMember"></select>
-        <input id="expDesc" placeholder="Description" style="flex:2">
-        <button onclick="addExpense()">Add</button>
-      </div>
-    </div>
 
     <div class="card">
-      <h2>📅 Attendance (Days)</h2>
+      <h2>➕ Add Member</h2>
       <div class="form-row">
-        <select id="attMember"></select>
-        <input id="attDays" type="number" placeholder="Total days" min="0">
-        <button onclick="setAttendance()">Set</button>
+        <input id="mName" placeholder="Member name">
+        <button onclick="addMember()">Add</button>
       </div>
       <div class="table-wrap">
-        <table id="attTable"></table>
+        <table id="memberTable"></table>
       </div>
     </div>
   </div>
 
-  <!-- SUMMARY -->
+  <!-- ATTENDANCE -->
   <div class="card section">
-    <h2>📊 Member Wise Summary (as on <span id="asOnDate"></span>)</h2>
+    <h2>📅 Attendance (Days)</h2>
+    <div class="form-row">
+      <select id="attMember"></select>
+      <input id="attDays" type="number" placeholder="Total days" min="0">
+      <button onclick="setAttendance()">Set</button>
+    </div>
     <div class="table-wrap">
-      <table id="summaryTable"></table>
+      <table id="attTable"></table>
     </div>
   </div>
 
