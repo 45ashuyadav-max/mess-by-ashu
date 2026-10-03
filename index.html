@@ -176,10 +176,9 @@
 
 <script>
 /* ========== CONFIG ========== */
-// ⚠️ Yahan apna Supabase URL aur key daalo
-const SUPABASE_URL = 'https://yotcwcobgvvfcmyxqbhb.supabase.co/rest/v1/';
-const SUPABASE_KEY = 'sb_publishable_vW-E9JZBaqguwIfAIYHdSA_X0Y67QRz';
-
+// Vercel environment variables se values aayengi
+const SUPABASE_URL = window.ENV_SUPABASE_URL || 'YAHAN_APNA_URL_PASTE_KARO';
+const SUPABASE_KEY = window.ENV_SUPABASE_KEY || 'YAHAN_APNA_ANON_KEY_PASTE_KARO';
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
