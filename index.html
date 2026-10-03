@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mess Management</title>
+
+<!-- PWA Meta Tags -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#667eea">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mess">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="icon" type="image/png" href="/icon-192.png">
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -179,9 +189,9 @@
 const SUPABASE_URL = 'https://yotcwcobgvvfcmyxqbhb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvdGN3Y29iZ3Z2ZmNteXhxYmhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNDEyOTgsImV4cCI6MjEwNjYxNzI5OH0.z2TSRDkWrcyFSQg7VZwiaT1L_UhzTk-NQl4kbMPNhB0';
 
-// 👇 YE 2 LINES ADD KARO
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
 /* ========== STATE ========== */
 let members = [];
 let advances = [];
@@ -192,7 +202,6 @@ let attendance = {};
 const fmt = n => '₹' + (Math.round(n*100)/100).toLocaleString('en-IN');
 const today = () => new Date().toISOString().slice(0,10);
 const getMemberName = id => (members.find(m => m.id === id) || {}).name || '—';
-const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 
 function setStatus(msg, color='#888') {
   const el = document.getElementById('status');
@@ -512,6 +521,15 @@ function exportAll() {
 document.getElementById('advDate').value = today();
 document.getElementById('expDate').value = today();
 loadAll();
+
+/* ========== PWA — Service Worker Register ========== */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.log('SW failed:', err));
+  });
+}
 </script>
 </body>
 </html>
