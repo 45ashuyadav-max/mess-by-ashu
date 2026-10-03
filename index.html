@@ -78,6 +78,11 @@
   button.danger { background: #e74c3c; padding: 4px 8px; font-size: 12px; }
   button.export { background: #27ae60; }
   button.export:active { background: #1e8449; }
+  button.cal-btn {
+    background: #eef0f7; color: #333; padding: 6px 10px; font-size: 16px;
+    border-radius: 6px; min-width: auto;
+  }
+  button.cal-btn:active { background: #dfe3f0; }
 
   .topbar {
     display: flex; justify-content: space-between; align-items: center;
@@ -97,6 +102,74 @@
   .empty { color: #999; text-align: center; padding: 16px; font-style: italic; }
   .section { margin-bottom: 12px; }
   .status { font-size: 11px; color: #888; text-align: right; padding: 4px; }
+
+  /* ===== MODAL / CALENDAR ===== */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: none; align-items: center; justify-content: center;
+    z-index: 1000; padding: 16px;
+  }
+  .modal-backdrop.open { display: flex; }
+
+  .modal {
+    background: #fff; border-radius: 12px; padding: 16px;
+    max-width: 380px; width: 100%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  }
+  .modal h3 { font-size: 16px; margin-bottom: 4px; color: #16213e; }
+  .modal .modal-sub { font-size: 12px; color: #888; margin-bottom: 12px; }
+
+  .cal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+  }
+  .cal-header .month-label {
+    font-weight: 600; font-size: 14px; color: #16213e;
+  }
+  .cal-header button {
+    padding: 4px 10px; background: #eef0f7; color: #333; font-size: 16px;
+    min-width: auto;
+  }
+  .cal-header button:active { background: #dfe3f0; }
+
+  .cal-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 4px; margin-bottom: 12px;
+  }
+  .cal-grid .dow {
+    text-align: center; font-size: 10px; color: #888;
+    font-weight: 600; padding: 4px 0; text-transform: uppercase;
+  }
+  .cal-grid .day {
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; border-radius: 6px; cursor: pointer;
+    user-select: none; color: #333; background: #f8f9fb;
+    transition: background 0.1s;
+  }
+  .cal-grid .day:active { background: #dfe3f0; }
+  .cal-grid .day.empty { background: transparent; cursor: default; }
+  .cal-grid .day.selected {
+    background: #667eea; color: #fff; font-weight: 600;
+  }
+  .cal-grid .day.today {
+    border: 2px solid #667eea;
+  }
+  .cal-grid .day.today.selected {
+    border: 2px solid #667eea;
+  }
+
+  .cal-actions {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 8px; flex-wrap: wrap;
+  }
+  .cal-actions .info {
+    font-size: 12px; color: #666;
+  }
+  .cal-actions .btns { display: flex; gap: 6px; }
+  .cal-actions button.clear-btn {
+    background: #eef0f7; color: #333;
+  }
+  .cal-actions button.clear-btn:active { background: #dfe3f0; }
 </style>
 </head>
 <body>
@@ -174,11 +247,6 @@
   <!-- ATTENDANCE -->
   <div class="card section">
     <h2>📅 Attendance (Days)</h2>
-    <div class="form-row">
-      <select id="attMember"></select>
-      <input id="attDays" type="number" placeholder="Total days" min="0">
-      <button onclick="setAttendance()">Set</button>
-    </div>
     <div class="table-wrap">
       <table id="attTable"></table>
     </div>
@@ -201,6 +269,30 @@
   </div>
 </div>
 
+<!-- ===== CALENDAR MODAL ===== -->
+<div class="modal-backdrop" id="calModal">
+  <div class="modal">
+    <h3 id="calTitle">Attendance</h3>
+    <div class="modal-sub">Din tap karo — pehla tap shuru, doosra tap range ka end. Har tap se select/unselect hoga.</div>
+
+    <div class="cal-header">
+      <button onclick="calPrevMonth()">‹</button>
+      <div class="month-label" id="calMonthLabel"></div>
+      <button onclick="calNextMonth()">›</button>
+    </div>
+
+    <div class="cal-grid" id="calGrid"></div>
+
+    <div class="cal-actions">
+      <div class="info">Selected: <b id="calCount">0</b> din</div>
+      <div class="btns">
+        <button class="clear-btn" onclick="calClear()">Clear</button>
+        <button onclick="calSave()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ========== CONFIG ========== */
 const SUPABASE_URL = 'https://yotcwcobgvvfcmyxqbhb.supabase.co';
@@ -214,6 +306,15 @@ let members = [];
 let advances = [];
 let expenses = [];
 let attendance = {};
+
+/* Calendar state */
+let calState = {
+  memberId: null,
+  year: 0,
+  month: 0, // 0-11
+  selected: new Set(), // selected day numbers
+  lastTap: null // last tapped day (for range selection)
+};
 
 /* ========== HELPERS ========== */
 const fmt = n => '₹' + (Math.round(n*100)/100).toLocaleString('en-IN');
@@ -289,7 +390,7 @@ function renderStats() {
 
 function renderMemberSelectors() {
   const opts = members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
-  ['advMember','expMember','attMember'].forEach(id => {
+  ['advMember','expMember'].forEach(id => {
     const el = document.getElementById(id);
     const prev = el.value;
     el.innerHTML = opts || '<option value="">No members</option>';
@@ -321,11 +422,16 @@ function renderAdvanceTable() {
     </tr>`).join('');
 }
 
+/* Attendance table — now with calendar button per row */
 function renderAttTable() {
   const t = document.getElementById('attTable');
   if (!members.length) { t.innerHTML = '<tr><td class="empty">No members</td></tr>'; return; }
-  t.innerHTML = `<tr><th>Member</th><th>Days</th></tr>` +
-    members.map(m => `<tr><td>${m.name}</td><td>${attendance[m.id]||0}</td></tr>`).join('');
+  t.innerHTML = `<tr><th>Member</th><th>Days</th><th>Calendar</th></tr>` +
+    members.map(m => `<tr>
+      <td>${m.name}</td>
+      <td><b>${attendance[m.id]||0}</b></td>
+      <td><button class="cal-btn" onclick="openCalendar('${m.id}')">📅</button></td>
+    </tr>`).join('');
 }
 
 function renderSummary() {
@@ -443,17 +549,11 @@ async function addExpense() {
   if (!member_id) return alert('Add members first');
   if (!amount || amount <= 0) return alert('Enter valid amount');
 
-  // 1. Expense mein add karo
   const expResult = await db.from('expenses').insert({ member_id, amount, date, description });
   if (expResult.error) return alert('Expense error: ' + expResult.error.message);
 
-  // 2. Agar checkbox ON hai toh advance mein bhi add karo
   if (addToAdvance) {
-    const advResult = await db.from('advances').insert({
-      member_id,
-      amount,
-      date
-    });
+    const advResult = await db.from('advances').insert({ member_id, amount, date });
     if (advResult.error) {
       alert('Advance add nahi hua (expense add ho gaya): ' + advResult.error.message);
     }
@@ -461,7 +561,39 @@ async function addExpense() {
 
   document.getElementById('expAmount').value = '';
   document.getElementById('expDesc').value = '';
-  document.getElementById('expAddToAdvance').checked = true; // default reset
+  document.getElementById('expAddToAdvance').checked = true;
+  loadAll();
+}
+
+async function delAdvance(id) {
+  const { error } = await db.from('advances').delete().eq('id', id);
+  if (error) return alert('Error: ' + error.message);
+  loadAll();
+}
+
+async function addExpense() {
+  const date = document.getElementById('expDate').value || today();
+  const amount = parseFloat(document.getElementById('expAmount').value);
+  const member_id = document.getElementById('expMember').value;
+  const description = document.getElementById('expDesc').value.trim();
+  const addToAdvance = document.getElementById('expAddToAdvance').checked;
+
+  if (!member_id) return alert('Add members first');
+  if (!amount || amount <= 0) return alert('Enter valid amount');
+
+  const expResult = await db.from('expenses').insert({ member_id, amount, date, description });
+  if (expResult.error) return alert('Expense error: ' + expResult.error.message);
+
+  if (addToAdvance) {
+    const advResult = await db.from('advances').insert({ member_id, amount, date });
+    if (advResult.error) {
+      alert('Advance add nahi hua (expense add ho gaya): ' + advResult.error.message);
+    }
+  }
+
+  document.getElementById('expAmount').value = '';
+  document.getElementById('expDesc').value = '';
+  document.getElementById('expAddToAdvance').checked = true;
   loadAll();
 }
 
@@ -470,20 +602,145 @@ async function delExpense(id) {
   if (error) return alert('Error: ' + error.message);
   loadAll();
 }
+ /* ============================================================
+   ========== CALENDAR — Attendance selector  ==========
+   ============================================================ */
 
-async function setAttendance() {
-  const member_id = document.getElementById('attMember').value;
-  const days = parseInt(document.getElementById('attDays').value) || 0;
-  if (!member_id) return alert('Add members first');
+function openCalendar(memberId) {
+  const now = new Date();
+  calState.memberId = memberId;
+  calState.year = now.getFullYear();
+  calState.month = now.getMonth();
+  calState.lastTap = null;
+
+  // Preload: agar attendance mein days pehle se hain,
+  // toh sirf 1..N tak ke days select karke dikhao
+  const existingDays = attendance[memberId] || 0;
+  calState.selected = new Set();
+  const daysInMonth = new Date(calState.year, calState.month + 1, 0).getDate();
+  const upto = Math.min(existingDays, daysInMonth);
+  for (let d = 1; d <= upto; d++) calState.selected.add(d);
+
+  document.getElementById('calTitle').textContent =
+    'Attendance — ' + getMemberName(memberId);
+  document.getElementById('calModal').classList.add('open');
+  renderCalendar();
+}
+
+function closeCalendar() {
+  document.getElementById('calModal').classList.remove('open');
+}
+
+function calPrevMonth() {
+  calState.month--;
+  if (calState.month < 0) { calState.month = 11; calState.year--; }
+  calState.lastTap = null;
+  renderCalendar();
+}
+
+function calNextMonth() {
+  calState.month++;
+  if (calState.month > 11) { calState.month = 0; calState.year++; }
+  calState.lastTap = null;
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const monthNames = ['January','February','March','April','May','June',
+                      'July','August','September','October','November','December'];
+  document.getElementById('calMonthLabel').textContent =
+    monthNames[calState.month] + ' ' + calState.year;
+
+  const firstDay = new Date(calState.year, calState.month, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(calState.year, calState.month + 1, 0).getDate();
+
+   const todayDate = new Date();
+  const isCurrentMonth = (todayDate.getFullYear() === calState.year &&
+                          todayDate.getMonth() === calState.month);
+  const todayDay = todayDate.getDate();
+
+  const dowLabels = ['S','M','T','W','T','F','S'];
+  let html = dowLabels.map(d => `<div class="dow">${d}</div>`).join('');
+
+  // empty cells
+  for (let i = 0; i < firstDay; i++) {
+    html += `<div class="day empty"></div>`;
+  }
+
+  // day cells
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isSelected = calState.selected.has(d);
+    const isToday = isCurrentMonth && d === todayDay;
+    const cls = ['day'];
+    if (isSelected) cls.push('selected');
+    if (isToday) cls.push('today');
+    html += `<div class="${cls.join(' ')}" onclick="calTapDay(${d})">${d}</div>`;
+  }
+
+  document.getElementById('calGrid').innerHTML = html;
+  document.getElementById('calCount').textContent = calState.selected.size;
+}
+
+function calTapDay(d) {
+  if (calState.lastTap === null) {
+    // Pehla tap — is day ko toggle karo aur isse lastTap banao
+    if (calState.selected.has(d)) {
+      // Agar pehle se selected hai toh hata do (par range ke liye lastTap set karo)
+      // Simple behaviour: sirf toggle, range ke liye lastTap set kar do
+      calState.selected.delete(d);
+      calState.lastTap = d;
+    } else {
+      calState.selected.add(d);
+      calState.lastTap = d;
+    }
+  } else {
+    // Doosra tap — range select karo lastTap se d tak
+    const a = Math.min(calState.lastTap, d);
+    const b = Math.max(calState.lastTap, d);
+
+    // Check: agar is range mein sab already selected hain toh unselect karo,
+    // warna sab select karo. Ye natural toggle feel deta hai.
+    let allSelected = true;
+    for (let i = a; i <= b; i++) {
+      if (!calState.selected.has(i)) { allSelected = false; break; }
+    }
+
+    if (allSelected) {
+      for (let i = a; i <= b; i++) calState.selected.delete(i);
+    } else {
+      for (let i = a; i <= b; i++) calState.selected.add(i);
+    }
+    calState.lastTap = null; // next tap will start fresh
+  }
+ renderCalendar();
+}
+
+function calClear() {
+  calState.selected.clear();
+  calState.lastTap = null;
+  renderCalendar();
+}
+
+async function calSave() {
+  const memberId = calState.memberId;
+  if (!memberId) return;
+
+  const days = calState.selected.size;
 
   const { error } = await db.from('attendance').upsert(
-    { member_id, days, updated_at: new Date().toISOString() },
+    { member_id: memberId, days, updated_at: new Date().toISOString() },
     { onConflict: 'member_id' }
   );
   if (error) return alert('Error: ' + error.message);
-  document.getElementById('attDays').value = '';
+
+  closeCalendar();
   loadAll();
 }
+
+/* Close modal when backdrop clicked */
+document.getElementById('calModal').addEventListener('click', (e) => {
+  if (e.target.id === 'calModal') closeCalendar();
+});
 
 /* ========== EXPORT ========== */
 function downloadFile(content, filename, mime='text/csv') {
@@ -495,8 +752,7 @@ function downloadFile(content, filename, mime='text/csv') {
   a.click();
   URL.revokeObjectURL(url);
 }
-
-function exportSummary() {
+ function exportSummary() {
   if (!members.length) return alert('No data to export');
   const rate = mealRate();
   const date = today();
@@ -550,7 +806,7 @@ function exportAll() {
     'application/json'
   );
 }
-
+ 
 /* ========== INIT ========== */
 document.getElementById('advDate').value = today();
 document.getElementById('expDate').value = today();
