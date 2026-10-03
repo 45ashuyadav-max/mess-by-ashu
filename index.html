@@ -50,13 +50,24 @@
   .stat .label { font-size: 11px; opacity: 0.9; margin-bottom: 5px; text-transform: uppercase; }
   .stat .value { font-size: 20px; font-weight: 700; }
 
-  .form-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .form-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; align-items: center; }
   .form-row input, .form-row select {
     flex: 1; min-width: 80px;
     padding: 9px 10px; border: 1px solid #ddd; border-radius: 6px;
     font-size: 14px; outline: none;
   }
   .form-row input:focus, .form-row select:focus { border-color: #667eea; }
+
+  .form-row label.checkbox-label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; color: #333; cursor: pointer;
+    background: #eef0f7; padding: 8px 12px; border-radius: 6px;
+    user-select: none;
+  }
+  .form-row label.checkbox-label input[type="checkbox"] {
+    width: 16px; height: 16px; flex: none; min-width: auto;
+    margin: 0; cursor: pointer;
+  }
 
   button {
     background: #667eea; color: #fff; border: none;
@@ -116,6 +127,12 @@
       <select id="expMember"></select>
       <input id="expDesc" placeholder="Description" style="flex:2">
       <button onclick="addExpense()">Add</button>
+    </div>
+    <div class="form-row">
+      <label class="checkbox-label">
+        <input type="checkbox" id="expAddToAdvance" checked>
+        Is amount ko advance mein bhi add karo
+      </label>
     </div>
   </div>
 
@@ -421,13 +438,30 @@ async function addExpense() {
   const amount = parseFloat(document.getElementById('expAmount').value);
   const member_id = document.getElementById('expMember').value;
   const description = document.getElementById('expDesc').value.trim();
+  const addToAdvance = document.getElementById('expAddToAdvance').checked;
+
   if (!member_id) return alert('Add members first');
   if (!amount || amount <= 0) return alert('Enter valid amount');
 
-  const { error } = await db.from('expenses').insert({ member_id, amount, date, description });
-  if (error) return alert('Error: ' + error.message);
+  // 1. Expense mein add karo
+  const expResult = await db.from('expenses').insert({ member_id, amount, date, description });
+  if (expResult.error) return alert('Expense error: ' + expResult.error.message);
+
+  // 2. Agar checkbox ON hai toh advance mein bhi add karo
+  if (addToAdvance) {
+    const advResult = await db.from('advances').insert({
+      member_id,
+      amount,
+      date
+    });
+    if (advResult.error) {
+      alert('Advance add nahi hua (expense add ho gaya): ' + advResult.error.message);
+    }
+  }
+
   document.getElementById('expAmount').value = '';
   document.getElementById('expDesc').value = '';
+  document.getElementById('expAddToAdvance').checked = true; // default reset
   loadAll();
 }
 
