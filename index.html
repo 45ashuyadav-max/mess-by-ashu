@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mess Management</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    background: #f0f2f5;
+    color: #1a1a2e;
+    padding: 12px;
+    font-size: 13px;
+  }
+  h1 { font-size: 20px; margin-bottom: 12px; color: #16213e; }
+  h2 { font-size: 15px; margin-bottom: 10px; color: #16213e; }
+  .container { max-width: 1400px; margin: 0 auto; }
+
+  .grid { display: grid; gap: 12px; }
+  .grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+
+  .card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .stat {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff; padding: 14px; border-radius: 10px;
+  }
+  .stat.green { background: linear-gradient(135deg, #11998e, #38ef7d); }
+  .stat.orange { background: linear-gradient(135deg, #f7971e, #ffd200); color: #333; }
+  .stat.red { background: linear-gradient(135deg, #ee0979, #ff6a00); }
+  .stat.blue { background: linear-gradient(135deg, #2193b0, #6dd5ed); }
+  .stat .label { font-size: 11px; opacity: 0.9; margin-bottom: 5px; text-transform: uppercase; }
+  .stat .value { font-size: 20px; font-weight: 700; }
+
+  .form-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .form-row input, .form-row select {
+    flex: 1; min-width: 80px;
+    padding: 9px 10px; border: 1px solid #ddd; border-radius: 6px;
+    font-size: 14px; outline: none;
+  }
+  .form-row input:focus, .form-row select:focus { border-color: #667eea; }
+
+  button {
+    background: #667eea; color: #fff; border: none;
+    padding: 9px 14px; border-radius: 6px; cursor: pointer;
+    font-size: 13px; font-weight: 500;
+  }
+  button:active { background: #5568d3; }
+  button.danger { background: #e74c3c; padding: 4px 8px; font-size: 12px; }
+  button.export { background: #27ae60; }
+  button.export:active { background: #1e8449; }
+
+  .topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 12px; flex-wrap: wrap; gap: 8px;
+  }
+  .topbar-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 7px 8px; text-align: left; border-bottom: 1px solid #eee; }
+  th { background: #f8f9fb; font-weight: 600; font-size: 11px; color: #555; }
+  tr:active { background: #fafbff; }
+
+  .pos { color: #27ae60; font-weight: 600; }
+  .neg { color: #e74c3c; font-weight: 600; }
+
+  .table-wrap { overflow-x: auto; max-height: 350px; overflow-y: auto; }
+  .empty { color: #999; text-align: center; padding: 16px; font-style: italic; }
+  .section { margin-bottom: 12px; }
+  .status { font-size: 11px; color: #888; text-align: right; padding: 4px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="topbar">
+    <h1>🍽️ Mess Manager</h1>
+    <div class="topbar-actions">
+      <button class="export" onclick="exportSummary()">📊 Summary Export</button>
+      <button class="export" onclick="exportHistory()">📜 History Export</button>
+      <button class="export" onclick="exportAll()">💾 Full Backup</button>
+    </div>
+  </div>
+
+  <div class="status" id="status">Connecting...</div>
+
+  <!-- STATS -->
+  <div class="stats" id="stats"></div>
+
+  <!-- FORMS -->
+  <div class="grid grid-2 section">
+    <div class="card">
+      <h2>➕ Add Member</h2>
+      <div class="form-row">
+        <input id="mName" placeholder="Member name">
+        <button onclick="addMember()">Add</button>
+      </div>
+      <div class="table-wrap">
+        <table id="memberTable"></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>💰 Member Wise Advance</h2>
+      <div class="form-row">
+        <select id="advMember"></select>
+        <input id="advAmount" type="number" placeholder="Amount">
+        <input id="advDate" type="date">
+        <button onclick="addAdvance()">Add</button>
+      </div>
+      <div class="table-wrap">
+        <table id="advanceTable"></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-2 section">
+    <div class="card">
+      <h2>🧾 Daily Expense</h2>
+      <div class="form-row">
+        <input id="expDate" type="date">
+        <input id="expAmount" type="number" placeholder="Amount">
+      </div>
+      <div class="form-row">
+        <select id="expMember"></select>
+        <input id="expDesc" placeholder="Description" style="flex:2">
+        <button onclick="addExpense()">Add</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📅 Attendance (Days)</h2>
+      <div class="form-row">
+        <select id="attMember"></select>
+        <input id="attDays" type="number" placeholder="Total days" min="0">
+        <button onclick="setAttendance()">Set</button>
+      </div>
+      <div class="table-wrap">
+        <table id="attTable"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="card section">
+    <h2>📊 Member Wise Summary (as on <span id="asOnDate"></span>)</h2>
+    <div class="table-wrap">
+      <table id="summaryTable"></table>
+    </div>
+  </div>
+
+  <div class="grid grid-2 section">
+    <div class="card">
+      <h2>🧮 Member Wise Spend</h2>
+      <div class="table-wrap">
+        <table id="spendByMember"></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📜 Spend History</h2>
+      <div class="table-wrap">
+        <table id="spendHistory"></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========== CONFIG ========== */
+// ⚠️ Yahan apna Supabase URL aur key daalo
+const SUPABASE_URL = 'YAHAN_APNA_URL_PASTE_KARO';
+const SUPABASE_KEY = 'YAHAN_APNA_ANON_KEY_PASTE_KARO';
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ========== STATE ========== */
+let members = [];
+let advances = [];
+let expenses = [];
+let attendance = {};
+
+/* ========== HELPERS ========== */
+const fmt = n => '₹' + (Math.round(n*100)/100).toLocaleString('en-IN');
+const today = () => new Date().toISOString().slice(0,10);
+const getMemberName = id => (members.find(m => m.id === id) || {}).name || '—';
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+function setStatus(msg, color='#888') {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.style.color = color;
+}
+
+function totalAdvance() { return advances.reduce((s,a)=>s+Number(a.amount),0); }
+function totalExpense() { return expenses.reduce((s,e)=>s+Number(e.amount),0); }
+function totalMealDays() { return members.reduce((s,m)=> s + (attendance[m.id]||0), 0); }
+function mealRate() {
+  const days = totalMealDays();
+  if (!days) return 0;
+  return totalExpense() / days;
+}
+
+/* ========== LOAD FROM SUPABASE ========== */
+async function loadAll() {
+  setStatus('Loading data...');
+  try {
+    const [m, a, e, at] = await Promise.all([
+      db.from('members').select('*').order('created_at'),
+      db.from('advances').select('*').order('date', {ascending: false}),
+      db.from('expenses').select('*').order('date', {ascending: false}),
+      db.from('attendance').select('*')
+    ]);
+    if (m.error) throw m.error;
+    members = m.data || [];
+    advances = a.data || [];
+    expenses = e.data || [];
+    attendance = {};
+    (at.data || []).forEach(r => attendance[r.member_id] = r.days);
+    setStatus('✓ Synced with Supabase', '#27ae60');
+    render();
+  } catch (err) {
+    setStatus('✗ Error: ' + err.message, '#e74c3c');
+    console.error(err);
+  }
+}
+
+/* ========== RENDER ========== */
+function render() {
+  document.getElementById('asOnDate').textContent = today();
+  renderStats();
+  renderMemberSelectors();
+  renderMemberTable();
+  renderAdvanceTable();
+  renderAttTable();
+  renderSummary();
+  renderSpendByMember();
+  renderSpendHistory();
+}
+
+function renderStats() {
+  const advance = totalAdvance();
+  const expense = totalExpense();
+  const balance = advance - expense;
+  const rate = mealRate();
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat blue"><div class="label">Total Members</div><div class="value">${members.length}</div></div>
+    <div class="stat green"><div class="label">Total Advance</div><div class="value">${fmt(advance)}</div></div>
+    <div class="stat red"><div class="label">Total Spend</div><div class="value">${fmt(expense)}</div></div>
+    <div class="stat orange"><div class="label">Total Balance</div><div class="value">${fmt(balance)}</div></div>
+    <div class="stat"><div class="label">Per Day Meal Rate</div><div class="value">${fmt(rate)}</div></div>
+  `;
+}
+
+function renderMemberSelectors() {
+  const opts = members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+  ['advMember','expMember','attMember'].forEach(id => {
+    const el = document.getElementById(id);
+    const prev = el.value;
+    el.innerHTML = opts || '<option value="">No members</option>';
+    if (prev && members.some(m => m.id === prev)) el.value = prev;
+  });
+}
+
+function renderMemberTable() {
+  const t = document.getElementById('memberTable');
+  if (!members.length) { t.innerHTML = '<tr><td class="empty">No members yet</td></tr>'; return; }
+  t.innerHTML = `<tr><th>Name</th><th>Advance</th><th></th></tr>` +
+    members.map(m => {
+      const adv = advances.filter(a=>a.member_id===m.id).reduce((s,a)=>s+Number(a.amount),0);
+      return `<tr>
+        <td>${m.name}</td>
+        <td>${fmt(adv)}</td>
+        <td><button class="danger" onclick="removeMember('${m.id}')">✕</button></td>
+      </tr>`;
+    }).join('');
+}
+
+function renderAdvanceTable() {
+  const t = document.getElementById('advanceTable');
+  if (!advances.length) { t.innerHTML = '<tr><td class="empty">No advances</td></tr>'; return; }
+  t.innerHTML = `<tr><th>Date</th><th>Member</th><th>Amount</th><th></th></tr>` +
+    advances.map(a => `<tr>
+      <td>${a.date}</td><td>${getMemberName(a.member_id)}</td><td>${fmt(a.amount)}</td>
+      <td><button class="danger" onclick="delAdvance('${a.id}')">✕</button></td>
+    </tr>`).join('');
+}
+
+function renderAttTable() {
+  const t = document.getElementById('attTable');
+  if (!members.length) { t.innerHTML = '<tr><td class="empty">No members</td></tr>'; return; }
+  t.innerHTML = `<tr><th>Member</th><th>Days</th></tr>` +
+    members.map(m => `<tr><td>${m.name}</td><td>${attendance[m.id]||0}</td></tr>`).join('');
+}
+
+function renderSummary() {
+  const t = document.getElementById('summaryTable');
+  if (!members.length) { t.innerHTML = '<tr><td class="empty">No members</td></tr>'; return; }
+
+  const rate = mealRate();
+  let html = `<tr>
+    <th>Member</th><th>Advance</th><th>Days</th>
+    <th>Meal Amt</th><th>Spend</th><th>Payable/Receivable</th>
+  </tr>`;
+
+  members.forEach(m => {
+    const adv = advances.filter(a=>a.member_id===m.id).reduce((s,a)=>s+Number(a.amount),0);
+    const days = attendance[m.id]||0;
+    const mealAmt = days * rate;
+    const spend = expenses.filter(e=>e.member_id===m.id).reduce((s,e)=>s+Number(e.amount),0);
+    const net = adv - mealAmt;
+    const cls = net >= 0 ? 'pos' : 'neg';
+    const label = net >= 0 ? 'Receive' : 'Pay';
+
+    html += `<tr>
+      <td><strong>${m.name}</strong></td>
+      <td>${fmt(adv)}</td>
+      <td>${days}</td>
+      <td>${fmt(mealAmt)}</td>
+      <td>${fmt(spend)}</td>
+      <td class="${cls}">${fmt(Math.abs(net))} ${label}</td>
+    </tr>`;
+  });
+
+  html += `<tr style="background:#f8f9fb;font-weight:600">
+    <td>TOTAL</td>
+    <td>${fmt(totalAdvance())}</td>
+    <td>${totalMealDays()}</td>
+    <td>${fmt(totalMealDays()*rate)}</td>
+    <td>${fmt(totalExpense())}</td>
+    <td>—</td>
+  </tr>`;
+
+  t.innerHTML = html;
+}
+
+function renderSpendByMember() {
+  const t = document.getElementById('spendByMember');
+  if (!members.length) { t.innerHTML = '<tr><td class="empty">No members</td></tr>'; return; }
+  const total = totalExpense();
+  let html = `<tr><th>Member</th><th>Spent</th><th>%</th></tr>`;
+  members.forEach(m => {
+    const spend = expenses.filter(e=>e.member_id===m.id).reduce((s,e)=>s+Number(e.amount),0);
+    const pct = total ? (spend/total*100).toFixed(1) : 0;
+    html += `<tr><td>${m.name}</td><td>${fmt(spend)}</td><td>${pct}%</td></tr>`;
+  });
+  t.innerHTML = html;
+}
+
+function renderSpendHistory() {
+  const t = document.getElementById('spendHistory');
+  if (!expenses.length) { t.innerHTML = '<tr><td class="empty">No expenses yet</td></tr>'; return; }
+  t.innerHTML = `<tr><th>Date</th><th>Member</th><th>Amount</th><th>Desc</th><th></th></tr>` +
+    expenses.map(e => `<tr>
+      <td>${e.date}</td>
+      <td>${getMemberName(e.member_id)}</td>
+      <td>${fmt(e.amount)}</td>
+      <td>${e.description || '—'}</td>
+      <td><button class="danger" onclick="delExpense('${e.id}')">✕</button></td>
+    </tr>`).join('');
+}
+
+/* ========== ACTIONS ========== */
+async function addMember() {
+  const name = document.getElementById('mName').value.trim();
+  if (!name) return alert('Enter member name');
+  if (members.some(m => m.name.toLowerCase() === name.toLowerCase())) return alert('Member already exists');
+
+  const { error } = await db.from('members').insert({ name });
+  if (error) return alert('Error: ' + error.message);
+  document.getElementById('mName').value = '';
+  loadAll();
+}
+
+async function removeMember(id) {
+  if (!confirm('Remove member and their records?')) return;
+  const { error } = await db.from('members').delete().eq('id', id);
+  if (error) return alert('Error: ' + error.message);
+  loadAll();
+}
+
+async function addAdvance() {
+  const member_id = document.getElementById('advMember').value;
+  const amount = parseFloat(document.getElementById('advAmount').value);
+  const date = document.getElementById('advDate').value || today();
+  if (!member_id) return alert('Add members first');
+  if (!amount || amount <= 0) return alert('Enter valid amount');
+
+  const { error } = await db.from('advances').insert({ member_id, amount, date });
+  if (error) return alert('Error: ' + error.message);
+  document.getElementById('advAmount').value = '';
+  loadAll();
+}
+
+async function delAdvance(id) {
+  const { error } = await db.from('advances').delete().eq('id', id);
+  if (error) return alert('Error: ' + error.message);
+  loadAll();
+}
+
+async function addExpense() {
+  const date = document.getElementById('expDate').value || today();
+  const amount = parseFloat(document.getElementById('expAmount').value);
+  const member_id = document.getElementById('expMember').value;
+  const description = document.getElementById('expDesc').value.trim();
+  if (!member_id) return alert('Add members first');
+  if (!amount || amount <= 0) return alert('Enter valid amount');
+
+  const { error } = await db.from('expenses').insert({ member_id, amount, date, description });
+  if (error) return alert('Error: ' + error.message);
+  document.getElementById('expAmount').value = '';
+  document.getElementById('expDesc').value = '';
+  loadAll();
+}
+
+async function delExpense(id) {
+  const { error } = await db.from('expenses').delete().eq('id', id);
+  if (error) return alert('Error: ' + error.message);
+  loadAll();
+}
+
+async function setAttendance() {
+  const member_id = document.getElementById('attMember').value;
+  const days = parseInt(document.getElementById('attDays').value) || 0;
+  if (!member_id) return alert('Add members first');
+
+  const { error } = await db.from('attendance').upsert(
+    { member_id, days, updated_at: new Date().toISOString() },
+    { onConflict: 'member_id' }
+  );
+  if (error) return alert('Error: ' + error.message);
+  document.getElementById('attDays').value = '';
+  loadAll();
+}
+
+/* ========== EXPORT ========== */
+function downloadFile(content, filename, mime='text/csv') {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportSummary() {
+  if (!members.length) return alert('No data to export');
+  const rate = mealRate();
+  const date = today();
+
+  let csv = `Member Wise Summary (as on ${date})\n\n`;
+  csv += `Member,Advance,Days,Meal Amount,Spend by Member,Payable/Receivable\n`;
+
+  members.forEach(m => {
+    const adv = advances.filter(a=>a.member_id===m.id).reduce((s,a)=>s+Number(a.amount),0);
+    const days = attendance[m.id]||0;
+    const mealAmt = days * rate;
+    const spend = expenses.filter(e=>e.member_id===m.id).reduce((s,e)=>s+Number(e.amount),0);
+    const net = adv - mealAmt;
+    csv += `"${m.name}",${adv},${days},${mealAmt.toFixed(2)},${spend},${net.toFixed(2)}\n`;
+  });
+
+  csv += `\nTOTAL,${totalAdvance()},${totalMealDays()},${(totalMealDays()*rate).toFixed(2)},${totalExpense()},\n`;
+  csv += `\nPer Day Meal Rate,${rate.toFixed(2)}\n`;
+
+  downloadFile(csv, `mess-summary-${date}.csv`);
+}
+
+function exportHistory() {
+  if (!expenses.length) return alert('No expenses to export');
+  const date = today();
+
+  let csv = `Spend History (exported on ${date})\n\n`;
+  csv += `Date,Member,Amount,Description\n`;
+
+  expenses.forEach(e => {
+    const desc = (e.description || '').replace(/"/g, '""');
+    csv += `${e.date},"${getMemberName(e.member_id)}",${e.amount},"${desc}"\n`;
+  });
+
+  csv += `\nTotal Spend,${totalExpense()}\n`;
+
+  downloadFile(csv, `mess-history-${date}.csv`);
+}
+
+function exportAll() {
+  const backup = {
+    exportedAt: new Date().toISOString(),
+    members,
+    advances,
+    expenses,
+    attendance
+  };
+  downloadFile(
+    JSON.stringify(backup, null, 2),
+    `mess-backup-${today()}.json`,
+    'application/json'
+  );
+}
+
+/* ========== INIT ========== */
+document.getElementById('advDate').value = today();
+document.getElementById('expDate').value = today();
+loadAll();
+</script>
+</body>
+</html>
