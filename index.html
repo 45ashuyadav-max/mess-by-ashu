@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mess Management</title>
+<title>Your Mess Manager</title>
 
 <!-- PWA Meta Tags -->
 <link rel="manifest" href="/manifest.json">
@@ -15,7 +15,6 @@
 <link rel="icon" type="image/png" href="/icon-192.png">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -91,7 +90,7 @@
   button.cal-btn:active { background: #dfe3f0; }
 
   .topbar {
-    display: flex; justify-content: space-between; align-items: center;
+    display: flex; justify-content: flex-end; align-items: center;
     margin-bottom: 12px; flex-wrap: wrap; gap: 8px;
   }
   .topbar-actions { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -109,7 +108,6 @@
   .section { margin-bottom: 12px; }
   .status { font-size: 11px; color: #888; text-align: right; padding: 4px; }
 
-  /* ===== MODAL ===== */
   .modal-backdrop {
     position: fixed; inset: 0; background: rgba(0,0,0,0.5);
     display: none; align-items: center; justify-content: center;
@@ -137,7 +135,6 @@
   .modal-actions button.cancel { background: #eef0f7; color: #333; }
   .modal-actions button.cancel:active { background: #dfe3f0; }
 
-  /* Calendar */
   .cal-header {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 10px;
@@ -164,27 +161,301 @@
   .cal-actions button.clear-btn { background: #eef0f7; color: #333; }
   .cal-actions button.clear-btn:active { background: #dfe3f0; }
 
-  /* Recently Deleted card styling */
   .deleted-card { border-left: 4px solid #e74c3c; }
   .deleted-card h2 { color: #c0392b; }
 
-  /* Optimistic — saving row highlight */
   .row-saving { background: #fff8e1 !important; opacity: 0.7; }
 
-  /* PDF template — hidden from view but rendered for PDF */
- #pdfTemplate {
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: -9999;
-  opacity: 0;
-  pointer-events: none;
-  width: 794px;
-  padding: 30px;
-  background: #fff;
-  color: #000;
-  font-family: 'Segoe UI', Arial, sans-serif;
- }
+  /* ============ LOGIN / SIGNUP OVERLAY ============ */
+  #authScreen {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    overflow-y: auto;
+  }
+  #authScreen.hidden { display: none; }
+
+  .auth-bg-deco {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    pointer-events: none;
+    animation: floatDeco 8s ease-in-out infinite;
+  }
+  .auth-bg-deco.d1 { width: 320px; height: 320px; top: -120px; right: -80px; }
+  .auth-bg-deco.d2 { width: 220px; height: 220px; bottom: -80px; left: -70px; animation-delay: 2s; }
+  .auth-bg-deco.d3 { width: 140px; height: 140px; top: 40%; left: 8%; animation-delay: 4s; }
+  @keyframes floatDeco {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-20px) scale(1.05); }
+  }
+
+  .auth-card {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 400px;
+    background: rgba(255,255,255,0.98);
+    border-radius: 20px;
+    padding: 32px 24px 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    animation: cardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(30px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .auth-brand { text-align: center; margin-bottom: 24px; }
+  .auth-brand .icon {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    margin-bottom: 14px;
+    box-shadow: 0 8px 24px rgba(102,126,234,0.4);
+    animation: iconPulse 2.5s ease-in-out infinite;
+  }
+  @keyframes iconPulse {
+    0%, 100% { box-shadow: 0 8px 24px rgba(102,126,234,0.4); }
+    50% { box-shadow: 0 8px 32px rgba(102,126,234,0.7); }
+  }
+  .auth-brand h1 {
+    font-size: 24px;
+    color: #16213e;
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
+  }
+  .auth-brand p { font-size: 13px; color: #7a7a9c; }
+
+  .auth-tabs {
+    display: flex;
+    background: #eef0f7;
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 20px;
+  }
+  .auth-tab {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #7a7a9c;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .auth-tab.active {
+    background: #fff;
+    color: #667eea;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  .auth-form { display: none; }
+  .auth-form.active { display: block; }
+
+  .auth-field { margin-bottom: 14px; position: relative; }
+  .auth-field label {
+    display: block;
+    font-size: 12px;
+    color: #555;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .auth-field input {
+    width: 100%;
+    padding: 12px 14px;
+    padding-right: 42px;
+    border: 1.5px solid #e0e3ec;
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: #fff;
+  }
+  .auth-field input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+  }
+  .auth-field .eye {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    cursor: pointer;
+    font-size: 16px;
+    opacity: 0.5;
+    user-select: none;
+    background: none;
+    border: none;
+    padding: 0;
+    color: #333;
+    min-width: auto;
+  }
+  .auth-field .eye:active { opacity: 0.9; }
+
+  .auth-btn {
+    width: 100%;
+    padding: 13px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    box-shadow: 0 4px 14px rgba(102,126,234,0.35);
+    transition: transform 0.15s, box-shadow 0.15s;
+    letter-spacing: 0.3px;
+  }
+  .auth-btn:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 8px rgba(102,126,234,0.35);
+  }
+  .auth-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .auth-msg {
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    display: none;
+    animation: msgIn 0.3s;
+  }
+  .auth-msg.error {
+    background: #fdecea;
+    color: #c0392b;
+    border-left: 3px solid #e74c3c;
+    display: block;
+  }
+  .auth-msg.success {
+    background: #e8f8f0;
+    color: #1e8449;
+    border-left: 3px solid #27ae60;
+    display: block;
+  }
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .auth-brand-footer {
+    text-align: center;
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid #eef0f7;
+  }
+  .auth-brand-footer .by { font-size: 12px; color: #999; }
+  .auth-brand-footer .name {
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 13px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 0.3px;
+  }
+
+  .auth-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ============ APP HEADER ============ */
+  .app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 14px rgba(102,126,234,0.3);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .app-header .welcome { font-size: 14px; font-weight: 600; }
+  .app-header .welcome .sub {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    opacity: 0.85;
+    margin-top: 2px;
+  }
+  .logout-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.15);
+    padding: 0;
+    overflow: hidden;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, background 0.2s, border-color 0.2s;
+    backdrop-filter: blur(4px);
+    min-width: auto;
+  }
+  .logout-btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+  }
+  .logout-btn:active {
+    transform: scale(0.92);
+    background: rgba(255,255,255,0.3);
+    border-color: #fff;
+  }
+  .logout-btn:hover {
+    transform: scale(1.05);
+    border-color: #fff;
+  }
+
+  @media (max-width: 480px) {
+    .auth-card { padding: 26px 20px 20px; border-radius: 16px; }
+    .auth-brand h1 { font-size: 21px; }
+    .auth-brand .icon { width: 64px; height: 64px; font-size: 32px; }
+  }
+
+  /* PDF template */
+  #pdfTemplate {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: -9999;
+    opacity: 0;
+    pointer-events: none;
+    width: 794px;
+    padding: 30px;
+    background: #fff;
+    color: #000;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
   #pdfTemplate .pdf-header { text-align: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 3px solid #667eea; }
   #pdfTemplate .pdf-header h1 { font-size: 26px; color: #16213e; margin-bottom: 4px; }
   #pdfTemplate .pdf-header .sub { font-size: 13px; color: #666; }
@@ -211,10 +482,81 @@
 </style>
 </head>
 <body>
-<div class="container">
+
+<!-- ===== LOGIN / SIGNUP SCREEN ===== -->
+<div id="authScreen">
+  <div class="auth-bg-deco d1"></div>
+  <div class="auth-bg-deco d2"></div>
+  <div class="auth-bg-deco d3"></div>
+
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="icon">🍽️</div>
+      <h1>Your Mess Manager</h1>
+      <p>Welcome! Manage your mess effortlessly.</p>
+    </div>
+
+    <div class="auth-tabs">
+      <div class="auth-tab active" data-tab="login" onclick="switchAuthTab('login')">Login</div>
+      <div class="auth-tab" data-tab="signup" onclick="switchAuthTab('signup')">Sign Up</div>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div class="auth-form active" id="loginForm">
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+        <button type="button" class="eye" onclick="togglePassword('loginPassword', this)">👁️</button>
+      </div>
+      <button class="auth-btn" id="loginBtn" onclick="doLogin()">Login</button>
+      <div class="auth-msg" id="loginMsg"></div>
+    </div>
+
+    <!-- SIGNUP FORM -->
+    <div class="auth-form" id="signupForm">
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" id="signupEmail" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <input type="password" id="signupPassword" placeholder="Min 6 characters" autocomplete="new-password">
+        <button type="button" class="eye" onclick="togglePassword('signupPassword', this)">👁️</button>
+      </div>
+      <div class="auth-field">
+        <label>Confirm Password</label>
+        <input type="password" id="signupConfirm" placeholder="Re-enter password" autocomplete="new-password">
+        <button type="button" class="eye" onclick="togglePassword('signupConfirm', this)">👁️</button>
+      </div>
+      <button class="auth-btn" id="signupBtn" onclick="doSignup()">Create Account</button>
+      <div class="auth-msg" id="signupMsg"></div>
+    </div>
+
+    <div class="auth-brand-footer">
+      <span class="by">By</span><span class="name">Ashu Yadav</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div class="container" id="mainApp" style="display:none;">
+
+  <!-- APP HEADER with welcome + logout -->
+  <div class="app-header" id="appHeader">
+    <div class="welcome">
+      Welcome to Your Mess
+      <span class="sub" id="userEmailSub"></span>
+    </div>
+    <button class="logout-btn" id="logoutBtn" onclick="doLogout()" title="Logout">
+      <img src="/icon-192.png" alt="Logout">
+    </button>
+  </div>
 
   <div class="topbar">
-    <h1>🍽️ Mess Manager</h1>
     <div class="topbar-actions">
       <button class="pdf" onclick="printPDF()">🖨️ Print PDF</button>
       <button class="export" onclick="exportSummary()">📊 Summary CSV</button>
@@ -408,6 +750,7 @@ let advances = [];
 let expenses = [];
 let attendance = {};
 let deletedExpenses = [];
+let currentUser = null;
 
 /* Calendar state */
 let calState = { memberId: null, year: 0, month: 0, selected: new Set(), lastTap: null };
@@ -416,7 +759,7 @@ let calState = { memberId: null, year: 0, month: 0, selected: new Set(), lastTap
 let editContext = { mode: null, id: null };
 let confirmCallback = null;
 
-/* Page load flag — purge sirf pehli load pe chalega */
+/* Page load flag */
 let pageLoadCount = 0;
 
 /* ========== HELPERS ========== */
@@ -426,6 +769,7 @@ const getMemberName = id => (members.find(m => m.id === id) || {}).name || '—'
 
 function setStatus(msg, color='#888') {
   const el = document.getElementById('status');
+  if (!el) return;
   el.textContent = msg;
   el.style.color = color;
 }
@@ -445,6 +789,183 @@ function daysAgo(dateStr) {
   return Math.floor((now - d) / (1000 * 60 * 60 * 24));
 }
 
+/* ============================================================
+   ========== AUTHENTICATION ==========
+   ============================================================ */
+
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === tab);
+  });
+  document.getElementById('loginForm').classList.toggle('active', tab === 'login');
+  document.getElementById('signupForm').classList.toggle('active', tab === 'signup');
+  // Clear messages
+  document.getElementById('loginMsg').className = 'auth-msg';
+  document.getElementById('signupMsg').className = 'auth-msg';
+}
+
+function togglePassword(fieldId, btn) {
+  const el = document.getElementById(fieldId);
+  if (!el) return;
+  if (el.type === 'password') {
+    el.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    el.type = 'password';
+    btn.textContent = '👁️';
+  }
+}
+
+function showAuthMsg(which, text, type) {
+  const el = document.getElementById(which + 'Msg');
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'auth-msg ' + type;
+}
+
+function setAuthLoading(which, loading) {
+  const btn = document.getElementById(which + 'Btn');
+  if (!btn) return;
+  if (loading) {
+    btn.disabled = true;
+    btn.dataset.original = btn.textContent;
+    btn.innerHTML = '<span class="auth-spinner"></span>Please wait...';
+  } else {
+    btn.disabled = false;
+    btn.textContent = btn.dataset.original || (which === 'login' ? 'Login' : 'Create Account');
+  }
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+
+  if (!email || !password) {
+    return showAuthMsg('login', 'Email aur password dono bharo', 'error');
+  }
+
+  setAuthLoading('login', true);
+  showAuthMsg('login', '', '');
+  document.getElementById('loginMsg').className = 'auth-msg';
+
+  try {
+    const { data, error } = await db.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+
+    currentUser = data.user;
+    showAuthMsg('login', 'Login successful! Loading...', 'success');
+
+    setTimeout(() => {
+      showApp();
+      loadAll();
+    }, 400);
+  } catch (err) {
+    let msg = err.message || 'Login failed';
+    if (msg.toLowerCase().includes('invalid login')) msg = 'Email ya password galat hai';
+    if (msg.toLowerCase().includes('email not confirmed')) msg = 'Email confirm karo pehle';
+    showAuthMsg('login', msg, 'error');
+    setAuthLoading('login', false);
+  }
+}
+
+async function doSignup() {
+  const email = document.getElementById('signupEmail').value.trim();
+  const password = document.getElementById('signupPassword').value;
+  const confirm = document.getElementById('signupConfirm').value;
+
+  if (!email || !password || !confirm) {
+    return showAuthMsg('signup', 'Sab fields bharo', 'error');
+  }
+  if (password.length < 6) {
+    return showAuthMsg('signup', 'Password kam se kam 6 characters ka hona chahiye', 'error');
+  }
+  if (password !== confirm) {
+    return showAuthMsg('signup', 'Passwords match nahi kar rahe', 'error');
+  }
+
+  setAuthLoading('signup', true);
+  document.getElementById('signupMsg').className = 'auth-msg';
+
+  try {
+    const { data, error } = await db.auth.signUp({ email, password });
+    if (error) throw error;
+
+    // Auto-confirm on if email confirmation disabled in Supabase
+    if (data.session) {
+      currentUser = data.user;
+      showAuthMsg('signup', 'Account created! Loading...', 'success');
+      setTimeout(() => {
+        showApp();
+        loadAll();
+      }, 400);
+    } else {
+      // Email confirmation required
+      showAuthMsg('signup', 'Account banaya! Email confirm karo, phir login karo.', 'success');
+      setAuthLoading('signup', false);
+      setTimeout(() => switchAuthTab('login'), 2500);
+    }
+  } catch (err) {
+    let msg = err.message || 'Signup failed';
+    if (msg.toLowerCase().includes('already registered')) msg = 'Ye email pehle se registered hai';
+    if (msg.toLowerCase().includes('invalid email')) msg = 'Email format galat hai';
+    showAuthMsg('signup', msg, 'error');
+    setAuthLoading('signup', false);
+  }
+}
+
+async function doLogout() {
+  showConfirm(
+    'Logout?',
+    'Aap logout ho jaoge. Wapas login karna padega.',
+    async () => {
+      await db.auth.signOut();
+      currentUser = null;
+      members = [];
+      advances = [];
+      expenses = [];
+      attendance = {};
+      deletedExpenses = [];
+      document.getElementById('authScreen').classList.remove('hidden');
+      document.getElementById('mainApp').style.display = 'none';
+      // Clear login fields
+      document.getElementById('loginEmail').value = '';
+      document.getElementById('loginPassword').value = '';
+      document.getElementById('loginMsg').className = 'auth-msg';
+      switchAuthTab('login');
+    },
+    'Logout'
+  );
+}
+
+function showApp() {
+  document.getElementById('authScreen').classList.add('hidden');
+  document.getElementById('mainApp').style.display = 'block';
+  if (currentUser) {
+    document.getElementById('userEmailSub').textContent = currentUser.email || '';
+  }
+}
+
+function showAuth() {
+  document.getElementById('authScreen').classList.remove('hidden');
+  document.getElementById('mainApp').style.display = 'none';
+}
+
+async function checkSession() {
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    if (session && session.user) {
+      currentUser = session.user;
+      showApp();
+      loadAll();
+    } else {
+      showAuth();
+    }
+  } catch (err) {
+    console.error('Session check error:', err);
+    showAuth();
+  }
+}
+
 /* ========== CONFIRM MODAL ========== */
 function showConfirm(title, msg, onConfirm, okText='Confirm') {
   document.getElementById('confirmTitle').textContent = title;
@@ -459,14 +980,9 @@ function closeConfirm() {
   confirmCallback = null;
 }
 
-document.getElementById('confirmOkBtn').addEventListener('click', async () => {
-  const cb = confirmCallback;
-  closeConfirm();
-  if (cb) await cb();
-});
-
 /* ========== LOAD FROM SUPABASE ========== */
 async function loadAll() {
+  if (!currentUser) return;
   setStatus('Loading data...');
   try {
     const [m, a, e, at, de] = await Promise.all([
@@ -484,7 +1000,6 @@ async function loadAll() {
     (at.data || []).forEach(r => attendance[r.member_id] = r.days);
     deletedExpenses = de.data || [];
 
-    // Auto-purge: sirf pehli load pe check karo, har action pe nahi
     if (pageLoadCount === 0) {
       pageLoadCount++;
       await purgeOldDeleted();
@@ -498,7 +1013,6 @@ async function loadAll() {
   }
 }
 
-/* Partial refresh — sirf expenses + advances (fast) */
 async function refreshExpensesAndAdvances() {
   try {
     const [a, e] = await Promise.all([
@@ -510,12 +1024,10 @@ async function refreshExpensesAndAdvances() {
     render();
   } catch (err) {
     console.error(err);
-    // Agar partial refresh fail ho toh full reload try karo
     loadAll();
   }
 }
 
-/* Partial refresh — sirf members (fast) */
 async function refreshMembersOnly() {
   try {
     const m = await db.from('members').select('*').order('created_at');
@@ -527,7 +1039,6 @@ async function refreshMembersOnly() {
   }
 }
 
-/* Partial refresh — sirf attendance (fast) */
 async function refreshAttendanceOnly() {
   try {
     const at = await db.from('attendance').select('*');
@@ -741,21 +1252,22 @@ function renderDeleted() {
       </tr>`;
     }).join('');
 }
-/* ========== MEMBER / ADVANCE ACTIONS ========== */
+ /* ========== MEMBER / ADVANCE ACTIONS ========== */
 async function addMember() {
+  if (!currentUser) return alert('Please login first');
   const name = document.getElementById('mName').value.trim();
   if (!name) return alert('Enter member name');
   if (members.some(m => m.name.toLowerCase() === name.toLowerCase())) return alert('Member already exists');
 
   document.getElementById('mName').value = '';
   const tempId = 'temp-' + Date.now();
-  const tempMember = { id: tempId, name, _temp: true };
+  const tempMember = { id: tempId, name, user_id: currentUser.id, _temp: true };
   members.push(tempMember);
   render();
   setStatus('Saving...', '#f39c12');
 
   try {
-    const { error } = await db.from('members').insert({ name });
+    const { error } = await db.from('members').insert({ name, user_id: currentUser.id });
     if (error) throw error;
     setStatus('✓ Synced with Supabase', '#27ae60');
     await refreshMembersOnly();
@@ -781,6 +1293,7 @@ function removeMember(id) {
 }
 
 async function addAdvance() {
+  if (!currentUser) return alert('Please login first');
   const member_id = document.getElementById('advMember').value;
   const amount = parseFloat(document.getElementById('advAmount').value);
   const date = document.getElementById('advDate').value || today();
@@ -789,13 +1302,13 @@ async function addAdvance() {
 
   document.getElementById('advAmount').value = '';
   const tempId = 'temp-' + Date.now();
-  const tempAdv = { id: tempId, member_id, amount, date, _temp: true };
+  const tempAdv = { id: tempId, member_id, amount, date, user_id: currentUser.id, _temp: true };
   advances.unshift(tempAdv);
   render();
   setStatus('Saving...', '#f39c12');
 
   try {
-    const { error } = await db.from('advances').insert({ member_id, amount, date });
+    const { error } = await db.from('advances').insert({ member_id, amount, date, user_id: currentUser.id });
     if (error) throw error;
     setStatus('✓ Synced with Supabase', '#27ae60');
     await refreshExpensesAndAdvances();
@@ -817,6 +1330,7 @@ function delAdvance(id) {
 
 /* ========== EXPENSE — ADD / EDIT / DELETE ========== */
 async function addExpense() {
+  if (!currentUser) return alert('Please login first');
   const date = document.getElementById('expDate').value || today();
   const amount = parseFloat(document.getElementById('expAmount').value);
   const member_id = document.getElementById('expMember').value;
@@ -826,32 +1340,29 @@ async function addExpense() {
   if (!member_id) return alert('Add members first');
   if (!amount || amount <= 0) return alert('Enter valid amount');
 
-  // Optimistic UI — turant dikhao
   const tempId = 'temp-' + Date.now();
-  const tempExpense = { id: tempId, member_id, amount, date, description, _temp: true };
+  const tempExpense = { id: tempId, member_id, amount, date, description, user_id: currentUser.id, _temp: true };
   expenses.unshift(tempExpense);
 
-  // Agar advance mein bhi add karna hai toh temp advance bhi
   let tempAdvId = null;
   if (addToAdvance) {
     tempAdvId = 'temp-adv-' + Date.now();
-    advances.unshift({ id: tempAdvId, member_id, amount, date, _temp: true });
+    advances.unshift({ id: tempAdvId, member_id, amount, date, user_id: currentUser.id, _temp: true });
   }
 
   render();
   setStatus('Saving...', '#f39c12');
 
-  // Form reset turant
   document.getElementById('expAmount').value = '';
   document.getElementById('expDesc').value = '';
   document.getElementById('expAddToAdvance').checked = false;
 
   try {
-    const expResult = await db.from('expenses').insert({ member_id, amount, date, description });
+    const expResult = await db.from('expenses').insert({ member_id, amount, date, description, user_id: currentUser.id });
     if (expResult.error) throw expResult.error;
 
     if (addToAdvance) {
-      const advResult = await db.from('advances').insert({ member_id, amount, date });
+      const advResult = await db.from('advances').insert({ member_id, amount, date, user_id: currentUser.id });
       if (advResult.error) {
         alert('Advance add nahi hua (expense add ho gaya): ' + advResult.error.message);
       }
@@ -860,7 +1371,6 @@ async function addExpense() {
     setStatus('✓ Synced with Supabase', '#27ae60');
     await refreshExpensesAndAdvances();
   } catch (err) {
-    // Rollback
     expenses = expenses.filter(e => e.id !== tempId);
     if (tempAdvId) advances = advances.filter(a => a.id !== tempAdvId);
     render();
@@ -881,7 +1391,8 @@ function confirmDeleteExpense(id) {
         member_id: exp.member_id,
         amount: exp.amount,
         date: exp.date,
-        description: exp.description
+        description: exp.description,
+        user_id: currentUser.id
       });
       if (copyResult.error) return alert('Copy error: ' + copyResult.error.message);
 
@@ -949,7 +1460,7 @@ async function saveEdit() {
     if (error) return alert('Update error: ' + error.message);
   } else if (editContext.mode === 'deleted') {
     const insertResult = await db.from('expenses').insert({
-      member_id, amount, date, description
+      member_id, amount, date, description, user_id: currentUser.id
     });
     if (insertResult.error) return alert('Insert error: ' + insertResult.error.message);
 
@@ -974,7 +1485,8 @@ function restoreDeleted(id) {
         member_id: d.member_id,
         amount: d.amount,
         date: d.date,
-        description: d.description
+        description: d.description,
+        user_id: currentUser.id
       });
       if (ins.error) return alert('Restore error: ' + ins.error.message);
 
@@ -1096,18 +1608,18 @@ function calClear() {
 }
 
 async function calSave() {
+  if (!currentUser) return alert('Please login first');
   const memberId = calState.memberId;
   if (!memberId) return;
   const days = calState.selected.size;
 
   closeCalendar();
-  // Optimistic — local mein update karo
   attendance[memberId] = days;
   render();
 
   try {
     const { error } = await db.from('attendance').upsert(
-      { member_id: memberId, days, updated_at: new Date().toISOString() },
+      { member_id: memberId, days, user_id: currentUser.id, updated_at: new Date().toISOString() },
       { onConflict: 'member_id' }
     );
     if (error) throw error;
@@ -1131,7 +1643,23 @@ document.getElementById('confirmModal').addEventListener('click', (e) => {
   if (e.target.id === 'confirmModal') closeConfirm();
 });
 
-/* ========== EXPORT CSV ========== */
+document.getElementById('confirmOkBtn').addEventListener('click', async () => {
+  const cb = confirmCallback;
+  closeConfirm();
+  if (cb) await cb();
+});
+
+/* Enter key support on auth forms */
+document.getElementById('loginPassword').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') doLogin();
+});
+document.getElementById('loginEmail').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') document.getElementById('loginPassword').focus();
+});
+document.getElementById('signupConfirm').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') doSignup();
+});
+ /* ========== EXPORT CSV ========== */
 function downloadFile(content, filename, mime='text/csv') {
   const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
@@ -1185,6 +1713,7 @@ function exportHistory() {
 function exportAll() {
   const backup = {
     exportedAt: new Date().toISOString(),
+    user: currentUser ? currentUser.email : null,
     members,
     advances,
     expenses,
@@ -1197,7 +1726,6 @@ function exportAll() {
   );
 }
 
-/* ========== EXPORT PDF ========== */
 /* ========== PRINT PDF (native, reliable) ========== */
 function printPDF() {
   if (!members.length) return alert('No data to export');
@@ -1248,7 +1776,7 @@ function printPDF() {
     '.neg{color:#e74c3c;font-weight:600;}' +
     '@media print{body{padding:15px;}}' +
     '</style></head><body>' +
-    '<div class="header"><h1>Mess Manager</h1>' +
+    '<div class="header"><h1>Your Mess Manager</h1>' +
     '<div class="sub">Member Wise Summary - as on ' + date + '</div></div>' +
     '<div class="stats">' +
       '<div class="stat-box"><div class="lbl">Total Members</div><div class="val">' + members.length + '</div></div>' +
@@ -1274,7 +1802,7 @@ function printPDF() {
         '<td style="text-align:right;">-</td>' +
       '</tr>' +
     '</tbody></table>' +
-    '<div class="footer">Generated by Mess Manager - ' + timeStr + '</div>' +
+    '<div class="footer">Generated by Your Mess Manager - By Ashu Yadav - ' + timeStr + '</div>' +
     '<script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script>' +
     '</body></html>';
 
@@ -1284,119 +1812,24 @@ function printPDF() {
   w.document.write(html);
   w.document.close();
 }
- 
-async function exportPDF() {
-  if (!members.length) return alert('No data to export');
-
-  const rate = mealRate();
-  const date = today();
-  const now = new Date();
-  const timeStr = now.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-
-  document.getElementById('pdfDate').textContent = date;
-  document.getElementById('pdfGenerated').textContent = timeStr;
-
-  document.getElementById('pdfStats').innerHTML = `
-    <div class="pdf-summary-box">
-      <div class="lbl">Total Members</div>
-      <div class="val">${members.length}</div>
-    </div>
-    <div class="pdf-summary-box">
-      <div class="lbl">Total Advance</div>
-      <div class="val">${fmt(totalAdvance())}</div>
-    </div>
-    <div class="pdf-summary-box">
-      <div class="lbl">Total Spend</div>
-      <div class="val">${fmt(totalExpense())}</div>
-    </div>
-    <div class="pdf-summary-box">
-      <div class="lbl">Meal Rate / Day</div>
-      <div class="val">${fmt(rate)}</div>
-    </div>
-  `;
-
-  let rows = `<thead><tr>
-    <th>Member</th>
-    <th style="text-align:right;">Advance</th>
-    <th style="text-align:center;">Days</th>
-    <th style="text-align:right;">Meal Amount</th>
-    <th style="text-align:right;">Spend</th>
-    <th style="text-align:right;">Payable / Receivable</th>
-  </tr></thead><tbody>`;
-
-  members.forEach(m => {
-    const adv = advances.filter(a=>a.member_id===m.id).reduce((s,a)=>s+Number(a.amount),0);
-    const days = attendance[m.id]||0;
-    const mealAmt = days * rate;
-    const spend = expenses.filter(e=>e.member_id===m.id).reduce((s,e)=>s+Number(e.amount),0);
-    const net = adv - mealAmt;
-    const cls = net >= 0 ? 'pos' : 'neg';
-    const label = net >= 0 ? 'Receive' : 'Pay';
-
-    rows += `<tr>
-      <td><b>${m.name}</b></td>
-      <td style="text-align:right;">${fmt(adv)}</td>
-      <td style="text-align:center;">${days}</td>
-      <td style="text-align:right;">${fmt(mealAmt)}</td>
-      <td style="text-align:right;">${fmt(spend)}</td>
-      <td style="text-align:right;" class="${cls}">${fmt(Math.abs(net))} ${label}</td>
-    </tr>`;
-  });
-
-  rows += `<tr class="pdf-total-row">
-    <td>TOTAL</td>
-    <td style="text-align:right;">${fmt(totalAdvance())}</td>
-    <td style="text-align:center;">${totalMealDays()}</td>
-    <td style="text-align:right;">${fmt(totalMealDays()*rate)}</td>
-    <td style="text-align:right;">${fmt(totalExpense())}</td>
-    <td style="text-align:right;">—</td>
-  </tr></tbody>`;
-
-  document.getElementById('pdfTable').innerHTML = rows;
-
-  const element = document.getElementById('pdfTemplate');
-
-// Force element visible during capture (Chrome needs this)
-element.style.opacity = '1';
-element.style.zIndex = '9999';
-element.style.pointerEvents = 'none';
-
-// Small delay taaki DOM render ho jaaye
-await new Promise(r => setTimeout(r, 100));
-
-const opt = {
-  margin: 0,
-  filename: `mess-summary-${date}.pdf`,
-  image: { type: 'jpeg', quality: 0.98 },
-  html2canvas: {
-    scale: 2,
-    useCORS: true,
-    backgroundColor: '#ffffff',
-    logging: false,
-    scrollX: 0,
-    scrollY: 0,
-    windowWidth: 794
-  },
-  jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-};
-
-try {
-  await html2pdf().set(opt).from(element).save();
-} catch (err) {
-  alert('PDF error: ' + err.message);
-  console.error(err);
-} finally {
-  // Restore hidden state
-  element.style.opacity = '0';
-  element.style.zIndex = '-9999';
-   }
-}
 
 /* ========== INIT ========== */
 document.getElementById('advDate').value = today();
 document.getElementById('expDate').value = today();
 document.getElementById('expAddToAdvance').checked = false;
-loadAll();
+
+// Check session on load
+checkSession();
+
+// Listen to auth state changes (session expiry, logout from another tab)
+db.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_OUT') {
+    currentUser = null;
+    showAuth();
+  } else if (event === 'SIGNED_IN' && session) {
+    currentUser = session.user;
+  }
+});
 
 /* ========== PWA — Service Worker Register ========== */
 if ('serviceWorker' in navigator) {
