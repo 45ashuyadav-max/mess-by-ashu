@@ -15,6 +15,7 @@
 <link rel="icon" type="image/png" href="/icon-192.png">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -76,8 +77,13 @@
   }
   button:active { background: #5568d3; }
   button.danger { background: #e74c3c; padding: 4px 8px; font-size: 12px; }
+  button.edit { background: #f39c12; padding: 4px 8px; font-size: 12px; }
+  button.restore { background: #27ae60; padding: 4px 8px; font-size: 12px; }
+  button.perm { background: #95a5a6; padding: 4px 8px; font-size: 12px; }
   button.export { background: #27ae60; }
   button.export:active { background: #1e8449; }
+  button.pdf { background: #e74c3c; }
+  button.pdf:active { background: #c0392b; }
   button.cal-btn {
     background: #eef0f7; color: #333; padding: 6px 10px; font-size: 16px;
     border-radius: 6px; min-width: auto;
@@ -103,7 +109,7 @@
   .section { margin-bottom: 12px; }
   .status { font-size: 11px; color: #888; text-align: right; padding: 4px; }
 
-  /* ===== MODAL / CALENDAR ===== */
+  /* ===== MODAL ===== */
   .modal-backdrop {
     position: fixed; inset: 0; background: rgba(0,0,0,0.5);
     display: none; align-items: center; justify-content: center;
@@ -115,61 +121,87 @@
     background: #fff; border-radius: 12px; padding: 16px;
     max-width: 380px; width: 100%;
     box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    max-height: 90vh; overflow-y: auto;
   }
   .modal h3 { font-size: 16px; margin-bottom: 4px; color: #16213e; }
   .modal .modal-sub { font-size: 12px; color: #888; margin-bottom: 12px; }
 
+  .modal .form-row { margin-bottom: 10px; }
+  .modal .form-row input, .modal .form-row select {
+    flex: 1 1 100%; min-width: 100%;
+  }
+
+  .modal-actions {
+    display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;
+  }
+  .modal-actions button.cancel { background: #eef0f7; color: #333; }
+  .modal-actions button.cancel:active { background: #dfe3f0; }
+
+  /* Calendar */
   .cal-header {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 10px;
   }
-  .cal-header .month-label {
-    font-weight: 600; font-size: 14px; color: #16213e;
-  }
-  .cal-header button {
-    padding: 4px 10px; background: #eef0f7; color: #333; font-size: 16px;
-    min-width: auto;
-  }
+  .cal-header .month-label { font-weight: 600; font-size: 14px; color: #16213e; }
+  .cal-header button { padding: 4px 10px; background: #eef0f7; color: #333; font-size: 16px; min-width: auto; }
   .cal-header button:active { background: #dfe3f0; }
 
-  .cal-grid {
-    display: grid; grid-template-columns: repeat(7, 1fr);
-    gap: 4px; margin-bottom: 12px;
-  }
-  .cal-grid .dow {
-    text-align: center; font-size: 10px; color: #888;
-    font-weight: 600; padding: 4px 0; text-transform: uppercase;
-  }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 12px; }
+  .cal-grid .dow { text-align: center; font-size: 10px; color: #888; font-weight: 600; padding: 4px 0; text-transform: uppercase; }
   .cal-grid .day {
     aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
     font-size: 13px; border-radius: 6px; cursor: pointer;
     user-select: none; color: #333; background: #f8f9fb;
-    transition: background 0.1s;
   }
   .cal-grid .day:active { background: #dfe3f0; }
   .cal-grid .day.empty { background: transparent; cursor: default; }
-  .cal-grid .day.selected {
-    background: #667eea; color: #fff; font-weight: 600;
-  }
-  .cal-grid .day.today {
-    border: 2px solid #667eea;
-  }
-  .cal-grid .day.today.selected {
-    border: 2px solid #667eea;
-  }
+  .cal-grid .day.selected { background: #667eea; color: #fff; font-weight: 600; }
+  .cal-grid .day.today { border: 2px solid #667eea; }
 
-  .cal-actions {
-    display: flex; justify-content: space-between; align-items: center;
-    gap: 8px; flex-wrap: wrap;
-  }
-  .cal-actions .info {
-    font-size: 12px; color: #666;
-  }
+  .cal-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .cal-actions .info { font-size: 12px; color: #666; }
   .cal-actions .btns { display: flex; gap: 6px; }
-  .cal-actions button.clear-btn {
-    background: #eef0f7; color: #333;
-  }
+  .cal-actions button.clear-btn { background: #eef0f7; color: #333; }
   .cal-actions button.clear-btn:active { background: #dfe3f0; }
+
+  /* Recently Deleted card styling */
+  .deleted-card { border-left: 4px solid #e74c3c; }
+  .deleted-card h2 { color: #c0392b; }
+
+  /* PDF template — hidden from view but rendered for PDF */
+  #pdfTemplate {
+    position: fixed;
+    left: -99999px;
+    top: 0;
+    width: 794px; /* A4 width at 96dpi */
+    padding: 30px;
+    background: #fff;
+    color: #000;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+  #pdfTemplate .pdf-header { text-align: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 3px solid #667eea; }
+  #pdfTemplate .pdf-header h1 { font-size: 26px; color: #16213e; margin-bottom: 4px; }
+  #pdfTemplate .pdf-header .sub { font-size: 13px; color: #666; }
+  #pdfTemplate .pdf-summary-row {
+    display: flex; justify-content: space-between; gap: 12px; margin-bottom: 16px;
+  }
+  #pdfTemplate .pdf-summary-box {
+    flex: 1; padding: 10px 14px; border-radius: 8px;
+    background: #f5f7ff; border-left: 4px solid #667eea;
+  }
+  #pdfTemplate .pdf-summary-box .lbl { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+  #pdfTemplate .pdf-summary-box .val { font-size: 16px; font-weight: 700; color: #16213e; margin-top: 4px; }
+  #pdfTemplate table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+  #pdfTemplate th {
+    background: #667eea; color: #fff; padding: 8px 6px; text-align: left;
+    font-size: 11px; text-transform: uppercase;
+  }
+  #pdfTemplate td { padding: 7px 6px; border-bottom: 1px solid #e0e0e0; }
+  #pdfTemplate tr:nth-child(even) td { background: #fafbff; }
+  #pdfTemplate .pdf-total-row td { background: #eef0f7 !important; font-weight: 700; border-top: 2px solid #667eea; }
+  #pdfTemplate .pdf-footer { margin-top: 20px; text-align: center; font-size: 10px; color: #888; }
+  #pdfTemplate .pos { color: #27ae60; font-weight: 600; }
+  #pdfTemplate .neg { color: #e74c3c; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -178,8 +210,9 @@
   <div class="topbar">
     <h1>🍽️ Mess Manager</h1>
     <div class="topbar-actions">
-      <button class="export" onclick="exportSummary()">📊 Summary Export</button>
-      <button class="export" onclick="exportHistory()">📜 History Export</button>
+      <button class="pdf" onclick="exportPDF()">📄 PDF Summary</button>
+      <button class="export" onclick="exportSummary()">📊 Summary CSV</button>
+      <button class="export" onclick="exportHistory()">📜 History CSV</button>
       <button class="export" onclick="exportAll()">💾 Full Backup</button>
     </div>
   </div>
@@ -189,7 +222,7 @@
   <!-- STATS -->
   <div class="stats" id="stats"></div>
 
-  <!-- DAILY EXPENSE (moved to top) -->
+  <!-- DAILY EXPENSE -->
   <div class="card section">
     <h2>🧾 Daily Expense</h2>
     <div class="form-row">
@@ -203,7 +236,7 @@
     </div>
     <div class="form-row">
       <label class="checkbox-label">
-        <input type="checkbox" id="expAddToAdvance" checked>
+        <input type="checkbox" id="expAddToAdvance">
         Is amount ko advance mein bhi add karo
       </label>
     </div>
@@ -267,13 +300,21 @@
       </div>
     </div>
   </div>
+
+  <!-- RECENTLY DELETED -->
+  <div class="card section deleted-card" id="deletedCard" style="display:none;">
+    <h2>🗑️ Recently Deleted <span style="font-size:11px;color:#888;font-weight:400;">(7 din tak restore kar sakte ho)</span></h2>
+    <div class="table-wrap">
+      <table id="deletedTable"></table>
+    </div>
+  </div>
 </div>
 
 <!-- ===== CALENDAR MODAL ===== -->
 <div class="modal-backdrop" id="calModal">
   <div class="modal">
     <h3 id="calTitle">Attendance</h3>
-    <div class="modal-sub">Din tap karo — pehla tap shuru, doosra tap range ka end. Har tap se select/unselect hoga.</div>
+    <div class="modal-sub">Din tap karo — pehla tap shuru, doosra tap range ka end.</div>
 
     <div class="cal-header">
       <button onclick="calPrevMonth()">‹</button>
@@ -293,6 +334,61 @@
   </div>
 </div>
 
+<!-- ===== CONFIRM MODAL ===== -->
+<div class="modal-backdrop" id="confirmModal">
+  <div class="modal">
+    <h3 id="confirmTitle">Confirm</h3>
+    <div class="modal-sub" id="confirmMsg">Are you sure?</div>
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="danger" id="confirmOkBtn" style="padding:9px 14px;font-size:13px;">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EDIT EXPENSE MODAL ===== -->
+<div class="modal-backdrop" id="editModal">
+  <div class="modal">
+    <h3 id="editTitle">Edit Expense</h3>
+    <div class="modal-sub">Change karke save karo</div>
+
+    <div class="form-row">
+      <label style="font-size:12px;color:#666;">Date</label>
+      <input id="editDate" type="date">
+    </div>
+    <div class="form-row">
+      <label style="font-size:12px;color:#666;">Member</label>
+      <select id="editMember"></select>
+    </div>
+    <div class="form-row">
+      <label style="font-size:12px;color:#666;">Amount</label>
+      <input id="editAmount" type="number" placeholder="Amount">
+    </div>
+    <div class="form-row">
+      <label style="font-size:12px;color:#666;">Description</label>
+      <input id="editDesc" placeholder="Description">
+    </div>
+
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeEdit()">Cancel</button>
+      <button onclick="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PDF TEMPLATE (hidden) ===== -->
+<div id="pdfTemplate">
+  <div class="pdf-header">
+    <h1>🍽️ Mess Manager</h1>
+    <div class="sub">Member Wise Summary — as on <span id="pdfDate"></span></div>
+  </div>
+  <div class="pdf-summary-row" id="pdfStats"></div>
+  <table id="pdfTable"></table>
+  <div class="pdf-footer">
+    Generated by Mess Manager • <span id="pdfGenerated"></span>
+  </div>
+</div>
+
 <script>
 /* ========== CONFIG ========== */
 const SUPABASE_URL = 'https://yotcwcobgvvfcmyxqbhb.supabase.co';
@@ -306,15 +402,14 @@ let members = [];
 let advances = [];
 let expenses = [];
 let attendance = {};
+let deletedExpenses = [];
 
 /* Calendar state */
-let calState = {
-  memberId: null,
-  year: 0,
-  month: 0, // 0-11
-  selected: new Set(), // selected day numbers
-  lastTap: null // last tapped day (for range selection)
-};
+let calState = { memberId: null, year: 0, month: 0, selected: new Set(), lastTap: null };
+
+/* Edit state */
+let editContext = { mode: null, id: null }; // mode: 'expense' | 'deleted'
+let confirmCallback = null;
 
 /* ========== HELPERS ========== */
 const fmt = n => '₹' + (Math.round(n*100)/100).toLocaleString('en-IN');
@@ -336,15 +431,42 @@ function mealRate() {
   return totalExpense() / days;
 }
 
+function daysAgo(dateStr) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  return Math.floor((now - d) / (1000 * 60 * 60 * 24));
+}
+
+/* ========== CONFIRM MODAL ========== */
+function showConfirm(title, msg, onConfirm, okText='Confirm') {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').textContent = msg;
+  document.getElementById('confirmOkBtn').textContent = okText;
+  confirmCallback = onConfirm;
+  document.getElementById('confirmModal').classList.add('open');
+}
+
+function closeConfirm() {
+  document.getElementById('confirmModal').classList.remove('open');
+  confirmCallback = null;
+}
+
+document.getElementById('confirmOkBtn').addEventListener('click', async () => {
+  const cb = confirmCallback;
+  closeConfirm();
+  if (cb) await cb();
+});
+
 /* ========== LOAD FROM SUPABASE ========== */
 async function loadAll() {
   setStatus('Loading data...');
   try {
-    const [m, a, e, at] = await Promise.all([
+    const [m, a, e, at, de] = await Promise.all([
       db.from('members').select('*').order('created_at'),
       db.from('advances').select('*').order('date', {ascending: false}),
       db.from('expenses').select('*').order('date', {ascending: false}),
-      db.from('attendance').select('*')
+      db.from('attendance').select('*'),
+      db.from('deleted_expenses').select('*').order('deleted_at', {ascending: false})
     ]);
     if (m.error) throw m.error;
     members = m.data || [];
@@ -352,11 +474,29 @@ async function loadAll() {
     expenses = e.data || [];
     attendance = {};
     (at.data || []).forEach(r => attendance[r.member_id] = r.days);
+    deletedExpenses = de.data || [];
+
+    // Auto-purge old deleted expenses (>7 days)
+    await purgeOldDeleted();
+
     setStatus('✓ Synced with Supabase', '#27ae60');
     render();
   } catch (err) {
     setStatus('✗ Error: ' + err.message, '#e74c3c');
     console.error(err);
+  }
+}
+
+async function purgeOldDeleted() {
+  const now = Date.now();
+  const sevenDays = 7 * 24 * 60 * 60 * 1000;
+  const oldIds = deletedExpenses
+    .filter(d => (now - new Date(d.deleted_at).getTime()) > sevenDays)
+    .map(d => d.id);
+
+  if (oldIds.length) {
+    await db.from('deleted_expenses').delete().in('id', oldIds);
+    deletedExpenses = deletedExpenses.filter(d => !oldIds.includes(d.id));
   }
 }
 
@@ -371,6 +511,7 @@ function render() {
   renderSummary();
   renderSpendByMember();
   renderSpendHistory();
+  renderDeleted();
 }
 
 function renderStats() {
@@ -390,8 +531,9 @@ function renderStats() {
 
 function renderMemberSelectors() {
   const opts = members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
-  ['advMember','expMember'].forEach(id => {
+  ['advMember','expMember','editMember'].forEach(id => {
     const el = document.getElementById(id);
+    if (!el) return;
     const prev = el.value;
     el.innerHTML = opts || '<option value="">No members</option>';
     if (prev && members.some(m => m.id === prev)) el.value = prev;
@@ -422,7 +564,6 @@ function renderAdvanceTable() {
     </tr>`).join('');
 }
 
-/* Attendance table — now with calendar button per row */
 function renderAttTable() {
   const t = document.getElementById('attTable');
   if (!members.length) { t.innerHTML = '<tr><td class="empty">No members</td></tr>'; return; }
@@ -453,7 +594,7 @@ function renderSummary() {
     const cls = net >= 0 ? 'pos' : 'neg';
     const label = net >= 0 ? 'Receive' : 'Pay';
 
-    html += `<tr>
+                  html += `<tr>
       <td><strong>${m.name}</strong></td>
       <td>${fmt(adv)}</td>
       <td>${days}</td>
@@ -491,17 +632,49 @@ function renderSpendByMember() {
 function renderSpendHistory() {
   const t = document.getElementById('spendHistory');
   if (!expenses.length) { t.innerHTML = '<tr><td class="empty">No expenses yet</td></tr>'; return; }
-  t.innerHTML = `<tr><th>Date</th><th>Member</th><th>Amount</th><th>Desc</th><th></th></tr>` +
+  t.innerHTML = `<tr><th>Date</th><th>Member</th><th>Amount</th><th>Desc</th><th>Actions</th></tr>` +
     expenses.map(e => `<tr>
       <td>${e.date}</td>
       <td>${getMemberName(e.member_id)}</td>
       <td>${fmt(e.amount)}</td>
       <td>${e.description || '—'}</td>
-      <td><button class="danger" onclick="delExpense('${e.id}')">✕</button></td>
+      <td>
+        <button class="edit" onclick="openEditExpense('${e.id}')">✏️</button>
+        <button class="danger" onclick="confirmDeleteExpense('${e.id}')">🗑</button>
+      </td>
     </tr>`).join('');
 }
 
-/* ========== ACTIONS ========== */
+function renderDeleted() {
+  const card = document.getElementById('deletedCard');
+  const t = document.getElementById('deletedTable');
+
+  if (!deletedExpenses.length) {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = 'block';
+  t.innerHTML = `<tr><th>Deleted</th><th>Date</th><th>Member</th><th>Amount</th><th>Desc</th><th>Actions</th></tr>` +
+    deletedExpenses.map(d => {
+      const ago = daysAgo(d.deleted_at);
+      const left = 7 - ago;
+      const agoLabel = ago === 0 ? 'Aaj' : `${ago} din pehle`;
+      return `<tr>
+        <td>${agoLabel}<br><span style="font-size:10px;color:#888;">${left} din baaki</span></td>
+        <td>${d.date}</td>
+        <td>${getMemberName(d.member_id)}</td>
+        <td>${fmt(d.amount)}</td>
+        <td>${d.description || '—'}</td>
+        <td>
+          <button class="restore" onclick="restoreDeleted('${d.id}')">↺</button>
+          <button class="edit" onclick="openEditDeleted('${d.id}')">✏️</button>
+          <button class="perm" onclick="permDelete('${d.id}')">✕</button>
+        </td>
+      </tr>`;
+    }).join('');
+}
+
+/* ========== MEMBER / ADVANCE ACTIONS ========== */
 async function addMember() {
   const name = document.getElementById('mName').value.trim();
   if (!name) return alert('Enter member name');
@@ -513,11 +686,17 @@ async function addMember() {
   loadAll();
 }
 
-async function removeMember(id) {
-  if (!confirm('Remove member and their records?')) return;
-  const { error } = await db.from('members').delete().eq('id', id);
-  if (error) return alert('Error: ' + error.message);
-  loadAll();
+function removeMember(id) {
+  showConfirm(
+    'Remove Member?',
+    'Member aur unke saare records (advance, expense, attendance) delete ho jaayenge. Pakka?',
+    async () => {
+      const { error } = await db.from('members').delete().eq('id', id);
+      if (error) return alert('Error: ' + error.message);
+      loadAll();
+    },
+    'Remove'
+  );
 }
 
 async function addAdvance() {
@@ -532,13 +711,15 @@ async function addAdvance() {
   document.getElementById('advAmount').value = '';
   loadAll();
 }
-
-async function delAdvance(id) {
-  const { error } = await db.from('advances').delete().eq('id', id);
-  if (error) return alert('Error: ' + error.message);
-  loadAll();
+function delAdvance(id) {
+  showConfirm('Delete Advance?', 'Ye advance permanently delete ho jaayega.', async () => {
+    const { error } = await db.from('advances').delete().eq('id', id);
+    if (error) return alert('Error: ' + error.message);
+    loadAll();
+  }, 'Delete');
 }
 
+/* ========== EXPENSE — ADD / EDIT / DELETE ========== */
 async function addExpense() {
   const date = document.getElementById('expDate').value || today();
   const amount = parseFloat(document.getElementById('expAmount').value);
@@ -561,14 +742,145 @@ async function addExpense() {
 
   document.getElementById('expAmount').value = '';
   document.getElementById('expDesc').value = '';
-  document.getElementById('expAddToAdvance').checked = true;
+  document.getElementById('expAddToAdvance').checked = false; // default OFF
   loadAll();
 }
 
-async function delExpense(id) {
-  const { error } = await db.from('expenses').delete().eq('id', id);
-  if (error) return alert('Error: ' + error.message);
+function confirmDeleteExpense(id) {
+  const exp = expenses.find(e => e.id === id);
+  if (!exp) return;
+  showConfirm(
+    'Delete Expense?',
+    `${getMemberName(exp.member_id)} — ${fmt(exp.amount)} (${exp.date}) ko Recently Deleted mein bhej dein? 7 din tak restore kar sakte ho.`,
+    async () => {
+      // Copy to deleted_expenses first
+      const copyResult = await db.from('deleted_expenses').insert({
+        original_id: exp.id,
+        member_id: exp.member_id,
+        amount: exp.amount,
+        date: exp.date,
+        description: exp.description
+      });
+      if (copyResult.error) return alert('Copy error: ' + copyResult.error.message);
+
+      // Then delete from expenses
+      const { error } = await db.from('expenses').delete().eq('id', id);
+      if (error) return alert('Delete error: ' + error.message);
+
+      loadAll();
+    },
+    'Delete'
+  );
+ }
+ 
+ /* ========== EDIT MODAL ========== */
+function openEditExpense(id) {
+  const e = expenses.find(x => x.id === id);
+  if (!e) return;
+  editContext = { mode: 'expense', id };
+  document.getElementById('editTitle').textContent = 'Edit Expense';
+  document.getElementById('editDate').value = e.date;
+  document.getElementById('editAmount').value = e.amount;
+  document.getElementById('editDesc').value = e.description || '';
+
+  // populate editMember dropdown
+  const sel = document.getElementById('editMember');
+  sel.innerHTML = members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+  sel.value = e.member_id;
+
+  document.getElementById('editModal').classList.add('open');
+}
+
+function openEditDeleted(id) {
+  const d = deletedExpenses.find(x => x.id === id);
+  if (!d) return;
+  editContext = { mode: 'deleted', id };
+  document.getElementById('editTitle').textContent = 'Edit Deleted Expense (Restore karega)';
+  document.getElementById('editDate').value = d.date;
+  document.getElementById('editAmount').value = d.amount;
+  document.getElementById('editDesc').value = d.description || '';
+
+  const sel = document.getElementById('editMember');
+  sel.innerHTML = members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+  sel.value = d.member_id;
+
+  document.getElementById('editModal').classList.add('open');
+}
+
+function closeEdit() {
+  document.getElementById('editModal').classList.remove('open');
+  editContext = { mode: null, id: null };
+}
+
+async function saveEdit() {
+  const date = document.getElementById('editDate').value;
+  const amount = parseFloat(document.getElementById('editAmount').value);
+  const member_id = document.getElementById('editMember').value;
+  const description = document.getElementById('editDesc').value.trim();
+
+  if (!date || !amount || amount <= 0 || !member_id) {
+    return alert('Sab fields sahi se bharo');
+  }
+
+  if (editContext.mode === 'expense') {
+    const { error } = await db.from('expenses').update({
+      date, amount, member_id, description
+    }).eq('id', editContext.id);
+    if (error) return alert('Update error: ' + error.message);
+  } else if (editContext.mode === 'deleted') {
+    // Edit karke save karo → wapas expenses mein restore
+    const delRow = deletedExpenses.find(d => d.id === editContext.id);
+    if (!delRow) return alert('Deleted row mila nahi');
+
+    const insertResult = await db.from('expenses').insert({
+      member_id, amount, date, description
+    });
+    if (insertResult.error) return alert('Insert error: ' + insertResult.error.message);
+   
+    const delResult = await db.from('deleted_expenses').delete().eq('id', editContext.id);
+    if (delResult.error) return alert('Delete cleanup error: ' + delResult.error.message);
+  }
+
+  closeEdit();
   loadAll();
+}
+
+/* ========== RESTORE / PERM DELETE ========== */
+function restoreDeleted(id) {
+  const d = deletedExpenses.find(x => x.id === id);
+  if (!d) return;
+
+  showConfirm(
+    'Restore Expense?',
+    `${getMemberName(d.member_id)} — ${fmt(d.amount)} ko wapas Spend History mein daal dein?`,
+    async () => {
+      const ins = await db.from('expenses').insert({
+        member_id: d.member_id,
+        amount: d.amount,
+        date: d.date,
+        description: d.description
+      });
+      if (ins.error) return alert('Restore error: ' + ins.error.message);
+
+      const del = await db.from('deleted_expenses').delete().eq('id', id);
+      if (del.error) return alert('Cleanup error: ' + del.error.message);
+      loadAll();
+    },
+    'Restore'
+  );
+}
+
+function permDelete(id) {
+  showConfirm(
+    'Permanently Delete?',
+    'Ye expense hamesha ke liye delete ho jaayega. Restore nahi ho paayega. Pakka?',
+    async () => {
+      const { error } = await db.from('deleted_expenses').delete().eq('id', id);
+      if (error) return alert('Error: ' + error.message);
+      loadAll();
+    },
+    'Delete Forever'
+  );
 }
 
 /* ============================================================
@@ -581,17 +893,13 @@ function openCalendar(memberId) {
   calState.year = now.getFullYear();
   calState.month = now.getMonth();
   calState.lastTap = null;
-
-  // Preload: agar attendance mein days pehle se hain,
-  // toh sirf 1..N tak ke days select karke dikhao
-  const existingDays = attendance[memberId] || 0;
+ const existingDays = attendance[memberId] || 0;
   calState.selected = new Set();
   const daysInMonth = new Date(calState.year, calState.month + 1, 0).getDate();
   const upto = Math.min(existingDays, daysInMonth);
   for (let d = 1; d <= upto; d++) calState.selected.add(d);
 
-  document.getElementById('calTitle').textContent =
-    'Attendance — ' + getMemberName(memberId);
+  document.getElementById('calTitle').textContent = 'Attendance — ' + getMemberName(memberId);
   document.getElementById('calModal').classList.add('open');
   renderCalendar();
 }
@@ -613,29 +921,22 @@ function calNextMonth() {
   calState.lastTap = null;
   renderCalendar();
 }
- function renderCalendar() {
+
+function renderCalendar() {
   const monthNames = ['January','February','March','April','May','June',
                       'July','August','September','October','November','December'];
-  document.getElementById('calMonthLabel').textContent =
-    monthNames[calState.month] + ' ' + calState.year;
+  document.getElementById('calMonthLabel').textContent = monthNames[calState.month] + ' ' + calState.year;
 
-  const firstDay = new Date(calState.year, calState.month, 1).getDay(); // 0=Sun
+  const firstDay = new Date(calState.year, calState.month, 1).getDay();
   const daysInMonth = new Date(calState.year, calState.month + 1, 0).getDate();
-
   const todayDate = new Date();
-  const isCurrentMonth = (todayDate.getFullYear() === calState.year &&
-                          todayDate.getMonth() === calState.month);
+  const isCurrentMonth = (todayDate.getFullYear() === calState.year && todayDate.getMonth() === calState.month);
   const todayDay = todayDate.getDate();
 
   const dowLabels = ['S','M','T','W','T','F','S'];
   let html = dowLabels.map(d => `<div class="dow">${d}</div>`).join('');
+  for (let i = 0; i < firstDay; i++) html += `<div class="day empty"></div>`;
 
-  // empty cells
-  for (let i = 0; i < firstDay; i++) {
-    html += `<div class="day empty"></div>`;
-  }
-
-  // day cells
   for (let d = 1; d <= daysInMonth; d++) {
     const isSelected = calState.selected.has(d);
     const isToday = isCurrentMonth && d === todayDay;
@@ -647,39 +948,26 @@ function calNextMonth() {
 
   document.getElementById('calGrid').innerHTML = html;
   document.getElementById('calCount').textContent = calState.selected.size;
-}
-
-function calTapDay(d) {
+   }
+ function calTapDay(d) {
   if (calState.lastTap === null) {
-    // Pehla tap — is day ko toggle karo aur isse lastTap banao
-    if (calState.selected.has(d)) {
-      // Agar pehle se selected hai toh hata do (par range ke liye lastTap set karo)
-      // Simple behaviour: sirf toggle, range ke liye lastTap set kar do
-      calState.selected.delete(d);
-      calState.lastTap = d;
-    } else {
-      calState.selected.add(d);
-      calState.lastTap = d;
-    }
+    if (calState.selected.has(d)) { calState.selected.delete(d); }
+    else { calState.selected.add(d); }
+    calState.lastTap = d;
   } else {
-    // Doosra tap — range select karo lastTap se d tak
     const a = Math.min(calState.lastTap, d);
     const b = Math.max(calState.lastTap, d);
-
-    // Check: agar is range mein sab already selected hain toh unselect karo,
-    // warna sab select karo. Ye natural toggle feel deta hai.
     let allSelected = true;
     for (let i = a; i <= b; i++) {
       if (!calState.selected.has(i)) { allSelected = false; break; }
     }
-       if (allSelected) {
+    if (allSelected) {
       for (let i = a; i <= b; i++) calState.selected.delete(i);
     } else {
       for (let i = a; i <= b; i++) calState.selected.add(i);
     }
-    calState.lastTap = null; // next tap will start fresh
+    calState.lastTap = null;
   }
-
   renderCalendar();
 }
 
@@ -692,7 +980,6 @@ function calClear() {
 async function calSave() {
   const memberId = calState.memberId;
   if (!memberId) return;
-
   const days = calState.selected.size;
 
   const { error } = await db.from('attendance').upsert(
@@ -700,17 +987,22 @@ async function calSave() {
     { onConflict: 'member_id' }
   );
   if (error) return alert('Error: ' + error.message);
-
   closeCalendar();
   loadAll();
 }
 
-/* Close modal when backdrop clicked */
+/* Close modals on backdrop click */
 document.getElementById('calModal').addEventListener('click', (e) => {
   if (e.target.id === 'calModal') closeCalendar();
 });
+document.getElementById('editModal').addEventListener('click', (e) => {
+  if (e.target.id === 'editModal') closeEdit();
+});
+document.getElementById('confirmModal').addEventListener('click', (e) => {
+  if (e.target.id === 'confirmModal') closeConfirm();
+});
 
-/* ========== EXPORT ========== */
+/* ========== EXPORT CSV ========== */
 function downloadFile(content, filename, mime='text/csv') {
   const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
@@ -721,7 +1013,7 @@ function downloadFile(content, filename, mime='text/csv') {
   URL.revokeObjectURL(url);
 }
 
-function exportSummary() {
+ function exportSummary() {
   if (!members.length) return alert('No data to export');
   const rate = mealRate();
   const date = today();
@@ -729,7 +1021,7 @@ function exportSummary() {
   let csv = `Member Wise Summary (as on ${date})\n\n`;
   csv += `Member,Advance,Days,Meal Amount,Spend by Member,Payable/Receivable\n`;
 
- members.forEach(m => {
+  members.forEach(m => {
     const adv = advances.filter(a=>a.member_id===m.id).reduce((s,a)=>s+Number(a.amount),0);
     const days = attendance[m.id]||0;
     const mealAmt = days * rate;
@@ -775,12 +1067,104 @@ function exportAll() {
     'application/json'
   );
 }
+ 
+/* ========== EXPORT PDF ========== */
+async function exportPDF() {
+  if (!members.length) return alert('No data to export');
+
+  const rate = mealRate();
+  const date = today();
+  const now = new Date();
+  const timeStr = now.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+
+  document.getElementById('pdfDate').textContent = date;
+  document.getElementById('pdfGenerated').textContent = timeStr;
+
+  // Summary stats row
+  document.getElementById('pdfStats').innerHTML = `
+    <div class="pdf-summary-box">
+      <div class="lbl">Total Members</div>
+      <div class="val">${members.length}</div>
+    </div>
+    <div class="pdf-summary-box">
+      <div class="lbl">Total Advance</div>
+      <div class="val">${fmt(totalAdvance())}</div>
+    </div>
+    <div class="pdf-summary-box">
+      <div class="lbl">Total Spend</div>
+      <div class="val">${fmt(totalExpense())}</div>
+    </div>
+    <div class="pdf-summary-box">
+      <div class="lbl">Meal Rate / Day</div>
+      <div class="val">${fmt(rate)}</div>
+    </div>
+  `;
+
+  // Table
+  let rows = `<thead><tr>
+    <th>Member</th>
+    <th style="text-align:right;">Advance</th>
+    <th style="text-align:center;">Days</th>
+    <th style="text-align:right;">Meal Amount</th>
+    <th style="text-align:right;">Spend</th>
+    <th style="text-align:right;">Payable / Receivable</th>
+  </tr></thead><tbody>`;
+
+  members.forEach(m => {
+    const adv = advances.filter(a=>a.member_id===m.id).reduce((s,a)=>s+Number(a.amount),0);
+    const days = attendance[m.id]||0;
+    const mealAmt = days * rate;
+    const spend = expenses.filter(e=>e.member_id===m.id).reduce((s,e)=>s+Number(e.amount),0);
+    const net = adv - mealAmt;
+    const cls = net >= 0 ? 'pos' : 'neg';
+    const label = net >= 0 ? 'Receive' : 'Pay';
+
+    rows += `<tr>
+      <td><b>${m.name}</b></td>
+      <td style="text-align:right;">${fmt(adv)}</td>
+      <td style="text-align:center;">${days}</td>
+      <td style="text-align:right;">${fmt(mealAmt)}</td>
+      <td style="text-align:right;">${fmt(spend)}</td>
+      <td style="text-align:right;" class="${cls}">${fmt(Math.abs(net))} ${label}</td>
+    </tr>`;
+  });
+ 
+  rows += `<tr class="pdf-total-row">
+    <td>TOTAL</td>
+    <td style="text-align:right;">${fmt(totalAdvance())}</td>
+    <td style="text-align:center;">${totalMealDays()}</td>
+    <td style="text-align:right;">${fmt(totalMealDays()*rate)}</td>
+    <td style="text-align:right;">${fmt(totalExpense())}</td>
+    <td style="text-align:right;">—</td>
+  </tr></tbody>`;
+
+  document.getElementById('pdfTable').innerHTML = rows;
+
+  // Generate PDF
+  const element = document.getElementById('pdfTemplate');
+  const opt = {
+    margin: 0,
+    filename: `mess-summary-${date}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  try {
+    await html2pdf().set(opt).from(element).save();
+  } catch (err) {
+    alert('PDF error: ' + err.message);
+    console.error(err);
+  }
+}
 
 /* ========== INIT ========== */
 document.getElementById('advDate').value = today();
 document.getElementById('expDate').value = today();
+// Default OFF — explicitly
+document.getElementById('expAddToAdvance').checked = false;
 loadAll();
- 
+
 /* ========== PWA — Service Worker Register ========== */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
