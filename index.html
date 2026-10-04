@@ -172,16 +172,19 @@
   .row-saving { background: #fff8e1 !important; opacity: 0.7; }
 
   /* PDF template — hidden from view but rendered for PDF */
-  #pdfTemplate {
-    position: fixed;
-    left: -99999px;
-    top: 0;
-    width: 794px;
-    padding: 30px;
-    background: #fff;
-    color: #000;
-    font-family: 'Segoe UI', Arial, sans-serif;
-  }
+ #pdfTemplate {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: -9999;
+  opacity: 0;
+  pointer-events: none;
+  width: 794px;
+  padding: 30px;
+  background: #fff;
+  color: #000;
+  font-family: 'Segoe UI', Arial, sans-serif;
+ }
   #pdfTemplate .pdf-header { text-align: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 3px solid #667eea; }
   #pdfTemplate .pdf-header h1 { font-size: 26px; color: #16213e; margin-bottom: 4px; }
   #pdfTemplate .pdf-header .sub { font-size: 13px; color: #666; }
@@ -1265,20 +1268,41 @@ async function exportPDF() {
   document.getElementById('pdfTable').innerHTML = rows;
 
   const element = document.getElementById('pdfTemplate');
-  const opt = {
-    margin: 0,
-    filename: `mess-summary-${date}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  };
 
-  try {
-    await html2pdf().set(opt).from(element).save();
-  } catch (err) {
-    alert('PDF error: ' + err.message);
-    console.error(err);
-  }
+// Force element visible during capture (Chrome needs this)
+element.style.opacity = '1';
+element.style.zIndex = '9999';
+element.style.pointerEvents = 'none';
+
+// Small delay taaki DOM render ho jaaye
+await new Promise(r => setTimeout(r, 100));
+
+const opt = {
+  margin: 0,
+  filename: `mess-summary-${date}.pdf`,
+  image: { type: 'jpeg', quality: 0.98 },
+  html2canvas: {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: '#ffffff',
+    logging: false,
+    scrollX: 0,
+    scrollY: 0,
+    windowWidth: 794
+  },
+  jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+};
+
+try {
+  await html2pdf().set(opt).from(element).save();
+} catch (err) {
+  alert('PDF error: ' + err.message);
+  console.error(err);
+} finally {
+  // Restore hidden state
+  element.style.opacity = '0';
+  element.style.zIndex = '-9999';
+   }
 }
 
 /* ========== INIT ========== */
