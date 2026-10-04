@@ -565,44 +565,13 @@ async function addExpense() {
   loadAll();
 }
 
-async function delAdvance(id) {
-  const { error } = await db.from('advances').delete().eq('id', id);
-  if (error) return alert('Error: ' + error.message);
-  loadAll();
-}
-
-async function addExpense() {
-  const date = document.getElementById('expDate').value || today();
-  const amount = parseFloat(document.getElementById('expAmount').value);
-  const member_id = document.getElementById('expMember').value;
-  const description = document.getElementById('expDesc').value.trim();
-  const addToAdvance = document.getElementById('expAddToAdvance').checked;
-
-  if (!member_id) return alert('Add members first');
-  if (!amount || amount <= 0) return alert('Enter valid amount');
-
-  const expResult = await db.from('expenses').insert({ member_id, amount, date, description });
-  if (expResult.error) return alert('Expense error: ' + expResult.error.message);
-
-  if (addToAdvance) {
-    const advResult = await db.from('advances').insert({ member_id, amount, date });
-    if (advResult.error) {
-      alert('Advance add nahi hua (expense add ho gaya): ' + advResult.error.message);
-    }
-  }
-
-  document.getElementById('expAmount').value = '';
-  document.getElementById('expDesc').value = '';
-  document.getElementById('expAddToAdvance').checked = true;
-  loadAll();
-}
-
 async function delExpense(id) {
   const { error } = await db.from('expenses').delete().eq('id', id);
   if (error) return alert('Error: ' + error.message);
   loadAll();
 }
- /* ============================================================
+
+/* ============================================================
    ========== CALENDAR — Attendance selector  ==========
    ============================================================ */
 
@@ -644,8 +613,7 @@ function calNextMonth() {
   calState.lastTap = null;
   renderCalendar();
 }
-
-function renderCalendar() {
+ function renderCalendar() {
   const monthNames = ['January','February','March','April','May','June',
                       'July','August','September','October','November','December'];
   document.getElementById('calMonthLabel').textContent =
@@ -654,7 +622,7 @@ function renderCalendar() {
   const firstDay = new Date(calState.year, calState.month, 1).getDay(); // 0=Sun
   const daysInMonth = new Date(calState.year, calState.month + 1, 0).getDate();
 
-   const todayDate = new Date();
+  const todayDate = new Date();
   const isCurrentMonth = (todayDate.getFullYear() === calState.year &&
                           todayDate.getMonth() === calState.month);
   const todayDay = todayDate.getDate();
@@ -704,15 +672,15 @@ function calTapDay(d) {
     for (let i = a; i <= b; i++) {
       if (!calState.selected.has(i)) { allSelected = false; break; }
     }
-
-    if (allSelected) {
+       if (allSelected) {
       for (let i = a; i <= b; i++) calState.selected.delete(i);
     } else {
       for (let i = a; i <= b; i++) calState.selected.add(i);
     }
     calState.lastTap = null; // next tap will start fresh
   }
- renderCalendar();
+
+  renderCalendar();
 }
 
 function calClear() {
@@ -752,7 +720,8 @@ function downloadFile(content, filename, mime='text/csv') {
   a.click();
   URL.revokeObjectURL(url);
 }
- function exportSummary() {
+
+function exportSummary() {
   if (!members.length) return alert('No data to export');
   const rate = mealRate();
   const date = today();
@@ -760,7 +729,7 @@ function downloadFile(content, filename, mime='text/csv') {
   let csv = `Member Wise Summary (as on ${date})\n\n`;
   csv += `Member,Advance,Days,Meal Amount,Spend by Member,Payable/Receivable\n`;
 
-  members.forEach(m => {
+ members.forEach(m => {
     const adv = advances.filter(a=>a.member_id===m.id).reduce((s,a)=>s+Number(a.amount),0);
     const days = attendance[m.id]||0;
     const mealAmt = days * rate;
@@ -806,12 +775,12 @@ function exportAll() {
     'application/json'
   );
 }
- 
+
 /* ========== INIT ========== */
 document.getElementById('advDate').value = today();
 document.getElementById('expDate').value = today();
 loadAll();
-
+ 
 /* ========== PWA — Service Worker Register ========== */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
