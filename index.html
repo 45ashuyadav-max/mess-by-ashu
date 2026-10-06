@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Your Mess Manager</title>
 
-<!-- PWA Meta Tags -->
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#667eea">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -166,14 +165,10 @@
 
   .row-saving { background: #fff8e1 !important; opacity: 0.7; }
 
-  /* ============ LOGIN / SIGNUP OVERLAY ============ */
+  /* LOGIN / SIGNUP */
   #authScreen {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: fixed; inset: 0; z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
     padding: 16px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     overflow-y: auto;
@@ -181,8 +176,7 @@
   #authScreen.hidden { display: none; }
 
   .auth-bg-deco {
-    position: absolute;
-    border-radius: 50%;
+    position: absolute; border-radius: 50%;
     background: rgba(255,255,255,0.08);
     pointer-events: none;
     animation: floatDeco 8s ease-in-out infinite;
@@ -196,13 +190,10 @@
   }
 
   .auth-card {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    max-width: 400px;
+    position: relative; z-index: 1;
+    width: 100%; max-width: 400px;
     background: rgba(255,255,255,0.98);
-    border-radius: 20px;
-    padding: 32px 24px 24px;
+    border-radius: 20px; padding: 32px 24px 24px;
     box-shadow: 0 20px 60px rgba(0,0,0,0.25);
     animation: cardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
@@ -213,14 +204,10 @@
 
   .auth-brand { text-align: center; margin-bottom: 24px; }
   .auth-brand .icon {
-    width: 72px; height: 72px;
-    border-radius: 50%;
+    width: 72px; height: 72px; border-radius: 50%;
     background: linear-gradient(135deg, #667eea, #764ba2);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 36px;
-    margin-bottom: 14px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 36px; margin-bottom: 14px;
     box-shadow: 0 8px 24px rgba(102,126,234,0.4);
     animation: iconPulse 2.5s ease-in-out infinite;
   }
@@ -228,36 +215,21 @@
     0%, 100% { box-shadow: 0 8px 24px rgba(102,126,234,0.4); }
     50% { box-shadow: 0 8px 32px rgba(102,126,234,0.7); }
   }
-  .auth-brand h1 {
-    font-size: 24px;
-    color: #16213e;
-    margin-bottom: 6px;
-    letter-spacing: -0.5px;
-  }
+  .auth-brand h1 { font-size: 24px; color: #16213e; margin-bottom: 6px; letter-spacing: -0.5px; }
   .auth-brand p { font-size: 13px; color: #7a7a9c; }
 
   .auth-tabs {
-    display: flex;
-    background: #eef0f7;
-    border-radius: 10px;
-    padding: 4px;
-    margin-bottom: 20px;
+    display: flex; background: #eef0f7;
+    border-radius: 10px; padding: 4px; margin-bottom: 20px;
   }
   .auth-tab {
-    flex: 1;
-    padding: 10px;
-    text-align: center;
-    font-size: 13px;
-    font-weight: 600;
-    color: #7a7a9c;
-    border-radius: 7px;
-    cursor: pointer;
-    transition: all 0.2s;
-    user-select: none;
+    flex: 1; padding: 10px; text-align: center;
+    font-size: 13px; font-weight: 600; color: #7a7a9c;
+    border-radius: 7px; cursor: pointer;
+    transition: all 0.2s; user-select: none;
   }
   .auth-tab.active {
-    background: #fff;
-    color: #667eea;
+    background: #fff; color: #667eea;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   }
 
@@ -265,21 +237,11 @@
   .auth-form.active { display: block; }
 
   .auth-field { margin-bottom: 14px; position: relative; }
-  .auth-field label {
-    display: block;
-    font-size: 12px;
-    color: #555;
-    font-weight: 500;
-    margin-bottom: 6px;
-  }
+  .auth-field label { display: block; font-size: 12px; color: #555; font-weight: 500; margin-bottom: 6px; }
   .auth-field input {
-    width: 100%;
-    padding: 12px 14px;
-    padding-right: 42px;
-    border: 1.5px solid #e0e3ec;
-    border-radius: 10px;
-    font-size: 14px;
-    outline: none;
+    width: 100%; padding: 12px 14px; padding-right: 42px;
+    border: 1.5px solid #e0e3ec; border-radius: 10px;
+    font-size: 14px; outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
     background: #fff;
   }
@@ -288,61 +250,38 @@
     box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
   }
   .auth-field .eye {
-    position: absolute;
-    right: 12px;
-    bottom: 12px;
-    cursor: pointer;
-    font-size: 16px;
-    opacity: 0.5;
-    user-select: none;
-    background: none;
-    border: none;
-    padding: 0;
-    color: #333;
-    min-width: auto;
+    position: absolute; right: 12px; bottom: 12px;
+    cursor: pointer; font-size: 16px; opacity: 0.5;
+    user-select: none; background: none; border: none;
+    padding: 0; color: #333; min-width: auto;
   }
   .auth-field .eye:active { opacity: 0.9; }
 
   .auth-btn {
-    width: 100%;
-    padding: 13px;
+    width: 100%; padding: 13px;
     background: linear-gradient(135deg, #667eea, #764ba2);
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
+    color: #fff; border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
     margin-top: 8px;
     box-shadow: 0 4px 14px rgba(102,126,234,0.35);
     transition: transform 0.15s, box-shadow 0.15s;
     letter-spacing: 0.3px;
   }
-  .auth-btn:active {
-    transform: scale(0.98);
-    box-shadow: 0 2px 8px rgba(102,126,234,0.35);
-  }
+  .auth-btn:active { transform: scale(0.98); }
   .auth-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
   .auth-msg {
-    margin-top: 14px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    font-size: 12.5px;
-    display: none;
-    animation: msgIn 0.3s;
+    margin-top: 14px; padding: 10px 12px;
+    border-radius: 8px; font-size: 12.5px;
+    display: none; animation: msgIn 0.3s;
   }
   .auth-msg.error {
-    background: #fdecea;
-    color: #c0392b;
-    border-left: 3px solid #e74c3c;
-    display: block;
+    background: #fdecea; color: #c0392b;
+    border-left: 3px solid #e74c3c; display: block;
   }
   .auth-msg.success {
-    background: #e8f8f0;
-    color: #1e8449;
-    border-left: 3px solid #27ae60;
-    display: block;
+    background: #e8f8f0; color: #1e8449;
+    border-left: 3px solid #27ae60; display: block;
   }
   @keyframes msgIn {
     from { opacity: 0; transform: translateY(-4px); }
@@ -350,91 +289,55 @@
   }
 
   .auth-brand-footer {
-    text-align: center;
-    margin-top: 22px;
-    padding-top: 18px;
-    border-top: 1px solid #eef0f7;
+    text-align: center; margin-top: 22px;
+    padding-top: 18px; border-top: 1px solid #eef0f7;
   }
   .auth-brand-footer .by { font-size: 12px; color: #999; }
   .auth-brand-footer .name {
-    display: inline-block;
-    margin-left: 4px;
-    font-size: 13px;
-    font-weight: 700;
+    display: inline-block; margin-left: 4px;
+    font-size: 13px; font-weight: 700;
     background: linear-gradient(135deg, #667eea, #764ba2);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    background-clip: text;
-    letter-spacing: 0.3px;
+    background-clip: text; letter-spacing: 0.3px;
   }
 
   .auth-spinner {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
+    display: inline-block; width: 16px; height: 16px;
     border: 2px solid rgba(255,255,255,0.4);
-    border-top-color: #fff;
-    border-radius: 50%;
+    border-top-color: #fff; border-radius: 50%;
     animation: spin 0.7s linear infinite;
-    vertical-align: middle;
-    margin-right: 8px;
+    vertical-align: middle; margin-right: 8px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ============ APP HEADER ============ */
   .app-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display: flex; justify-content: space-between; align-items: center;
     background: linear-gradient(135deg, #667eea, #764ba2);
-    color: #fff;
-    padding: 12px 16px;
-    border-radius: 10px;
+    color: #fff; padding: 12px 16px; border-radius: 10px;
     margin-bottom: 12px;
     box-shadow: 0 4px 14px rgba(102,126,234,0.3);
-    gap: 12px;
-    flex-wrap: wrap;
+    gap: 12px; flex-wrap: wrap;
   }
   .app-header .welcome { font-size: 14px; font-weight: 600; }
   .app-header .welcome .sub {
-    display: block;
-    font-size: 11px;
-    font-weight: 400;
-    opacity: 0.85;
-    margin-top: 2px;
+    display: block; font-size: 11px; font-weight: 400;
+    opacity: 0.85; margin-top: 2px;
   }
   .logout-btn {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
+    width: 44px; height: 44px; border-radius: 50%;
     border: 2px solid rgba(255,255,255,0.4);
     background: rgba(255,255,255,0.15);
-    padding: 0;
-    overflow: hidden;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    padding: 0; overflow: hidden; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
     transition: transform 0.2s, background 0.2s, border-color 0.2s;
-    backdrop-filter: blur(4px);
-    min-width: auto;
+    backdrop-filter: blur(4px); min-width: auto;
   }
   .logout-btn img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-    display: block;
+    width: 100%; height: 100%;
+    object-fit: cover; border-radius: 50%; display: block;
   }
-  .logout-btn:active {
-    transform: scale(0.92);
-    background: rgba(255,255,255,0.3);
-    border-color: #fff;
-  }
-  .logout-btn:hover {
-    transform: scale(1.05);
-    border-color: #fff;
-  }
+  .logout-btn:active { transform: scale(0.92); background: rgba(255,255,255,0.3); border-color: #fff; }
 
   @media (max-width: 480px) {
     .auth-card { padding: 26px 20px 20px; border-radius: 16px; }
@@ -442,37 +345,22 @@
     .auth-brand .icon { width: 64px; height: 64px; font-size: 32px; }
   }
 
-  /* PDF template */
   #pdfTemplate {
-    position: fixed;
-    left: 0;
-    top: 0;
-    z-index: -9999;
-    opacity: 0;
-    pointer-events: none;
-    width: 794px;
-    padding: 30px;
-    background: #fff;
-    color: #000;
+    position: fixed; left: 0; top: 0;
+    z-index: -9999; opacity: 0; pointer-events: none;
+    width: 794px; padding: 30px;
+    background: #fff; color: #000;
     font-family: 'Segoe UI', Arial, sans-serif;
   }
   #pdfTemplate .pdf-header { text-align: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 3px solid #667eea; }
   #pdfTemplate .pdf-header h1 { font-size: 26px; color: #16213e; margin-bottom: 4px; }
   #pdfTemplate .pdf-header .sub { font-size: 13px; color: #666; }
-  #pdfTemplate .pdf-summary-row {
-    display: flex; justify-content: space-between; gap: 12px; margin-bottom: 16px;
-  }
-  #pdfTemplate .pdf-summary-box {
-    flex: 1; padding: 10px 14px; border-radius: 8px;
-    background: #f5f7ff; border-left: 4px solid #667eea;
-  }
+  #pdfTemplate .pdf-summary-row { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  #pdfTemplate .pdf-summary-box { flex: 1; padding: 10px 14px; border-radius: 8px; background: #f5f7ff; border-left: 4px solid #667eea; }
   #pdfTemplate .pdf-summary-box .lbl { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
   #pdfTemplate .pdf-summary-box .val { font-size: 16px; font-weight: 700; color: #16213e; margin-top: 4px; }
   #pdfTemplate table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
-  #pdfTemplate th {
-    background: #667eea; color: #fff; padding: 8px 6px; text-align: left;
-    font-size: 11px; text-transform: uppercase;
-  }
+  #pdfTemplate th { background: #667eea; color: #fff; padding: 8px 6px; text-align: left; font-size: 11px; text-transform: uppercase; }
   #pdfTemplate td { padding: 7px 6px; border-bottom: 1px solid #e0e0e0; }
   #pdfTemplate tr:nth-child(even) td { background: #fafbff; }
   #pdfTemplate .pdf-total-row td { background: #eef0f7 !important; font-weight: 700; border-top: 2px solid #667eea; }
@@ -501,7 +389,6 @@
       <div class="auth-tab" data-tab="signup" onclick="switchAuthTab('signup')">Sign Up</div>
     </div>
 
-    <!-- LOGIN FORM -->
     <div class="auth-form active" id="loginForm">
       <div class="auth-field">
         <label>Email</label>
@@ -516,7 +403,6 @@
       <div class="auth-msg" id="loginMsg"></div>
     </div>
 
-    <!-- SIGNUP FORM -->
     <div class="auth-form" id="signupForm">
       <div class="auth-field">
         <label>Email</label>
@@ -545,7 +431,6 @@
 <!-- ===== MAIN APP ===== -->
 <div class="container" id="mainApp" style="display:none;">
 
-  <!-- APP HEADER with welcome + logout -->
   <div class="app-header" id="appHeader">
     <div class="welcome">
       Welcome to Your Mess
@@ -567,10 +452,8 @@
 
   <div class="status" id="status">Connecting...</div>
 
-  <!-- STATS -->
   <div class="stats" id="stats"></div>
 
-  <!-- DAILY EXPENSE -->
   <div class="card section">
     <h2>🧾 Daily Expense</h2>
     <div class="form-row">
@@ -590,7 +473,6 @@
     </div>
   </div>
 
-  <!-- SUMMARY -->
   <div class="card section">
     <h2>📊 Member Wise Summary (as on <span id="asOnDate"></span>)</h2>
     <div class="table-wrap">
@@ -598,7 +480,6 @@
     </div>
   </div>
 
-  <!-- ADVANCE + MEMBER ADD -->
   <div class="grid grid-2 section">
     <div class="card">
       <h2>💰 Member Wise Advance</h2>
@@ -625,7 +506,6 @@
     </div>
   </div>
 
-  <!-- ATTENDANCE -->
   <div class="card section">
     <h2>📅 Attendance (Days)</h2>
     <div class="table-wrap">
@@ -649,7 +529,6 @@
     </div>
   </div>
 
-  <!-- RECENTLY DELETED -->
   <div class="card section deleted-card" id="deletedCard" style="display:none;">
     <h2>🗑️ Recently Deleted <span style="font-size:11px;color:#888;font-weight:400;">(7 din tak restore kar sakte ho)</span></h2>
     <div class="table-wrap">
@@ -658,7 +537,6 @@
   </div>
 </div>
 
-<!-- ===== CALENDAR MODAL ===== -->
 <div class="modal-backdrop" id="calModal">
   <div class="modal">
     <h3 id="calTitle">Attendance</h3>
@@ -682,7 +560,6 @@
   </div>
 </div>
 
-<!-- ===== CONFIRM MODAL ===== -->
 <div class="modal-backdrop" id="confirmModal">
   <div class="modal">
     <h3 id="confirmTitle">Confirm</h3>
@@ -694,7 +571,6 @@
   </div>
 </div>
 
-<!-- ===== EDIT EXPENSE MODAL ===== -->
 <div class="modal-backdrop" id="editModal">
   <div class="modal">
     <h3 id="editTitle">Edit Expense</h3>
@@ -724,7 +600,6 @@
   </div>
 </div>
 
-<!-- ===== PDF TEMPLATE (hidden) ===== -->
 <div id="pdfTemplate">
   <div class="pdf-header">
     <h1>🍽️ Mess Manager</h1>
@@ -749,17 +624,13 @@ let members = [];
 let advances = [];
 let expenses = [];
 let attendance = {};
+let attendanceDates = {};
 let deletedExpenses = [];
 let currentUser = null;
 
-/* Calendar state */
-let calState = { memberId: null, year: 0, month: 0, selected: new Set(), lastTap: null };
-
-/* Edit state */
+let calState = { memberId: null, year: 0, month: 0, selected: new Set(), lastTap: null, initialDates: new Set() };
 let editContext = { mode: null, id: null };
 let confirmCallback = null;
-
-/* Page load flag */
 let pageLoadCount = 0;
 
 /* ========== HELPERS ========== */
@@ -799,7 +670,6 @@ function switchAuthTab(tab) {
   });
   document.getElementById('loginForm').classList.toggle('active', tab === 'login');
   document.getElementById('signupForm').classList.toggle('active', tab === 'signup');
-  // Clear messages
   document.getElementById('loginMsg').className = 'auth-msg';
   document.getElementById('signupMsg').className = 'auth-msg';
 }
@@ -845,7 +715,6 @@ async function doLogin() {
   }
 
   setAuthLoading('login', true);
-  showAuthMsg('login', '', '');
   document.getElementById('loginMsg').className = 'auth-msg';
 
   try {
@@ -890,7 +759,6 @@ async function doSignup() {
     const { data, error } = await db.auth.signUp({ email, password });
     if (error) throw error;
 
-    // Auto-confirm on if email confirmation disabled in Supabase
     if (data.session) {
       currentUser = data.user;
       showAuthMsg('signup', 'Account created! Loading...', 'success');
@@ -899,7 +767,6 @@ async function doSignup() {
         loadAll();
       }, 400);
     } else {
-      // Email confirmation required
       showAuthMsg('signup', 'Account banaya! Email confirm karo, phir login karo.', 'success');
       setAuthLoading('signup', false);
       setTimeout(() => switchAuthTab('login'), 2500);
@@ -924,10 +791,10 @@ async function doLogout() {
       advances = [];
       expenses = [];
       attendance = {};
+      attendanceDates = {};
       deletedExpenses = [];
       document.getElementById('authScreen').classList.remove('hidden');
       document.getElementById('mainApp').style.display = 'none';
-      // Clear login fields
       document.getElementById('loginEmail').value = '';
       document.getElementById('loginPassword').value = '';
       document.getElementById('loginMsg').className = 'auth-msg';
@@ -997,7 +864,11 @@ async function loadAll() {
     advances = a.data || [];
     expenses = e.data || [];
     attendance = {};
-    (at.data || []).forEach(r => attendance[r.member_id] = r.days);
+    attendanceDates = {};
+    (at.data || []).forEach(r => {
+      attendance[r.member_id] = r.days;
+      attendanceDates[r.member_id] = r.dates || [];
+    });
     deletedExpenses = de.data || [];
 
     if (pageLoadCount === 0) {
@@ -1043,7 +914,11 @@ async function refreshAttendanceOnly() {
   try {
     const at = await db.from('attendance').select('*');
     attendance = {};
-    (at.data || []).forEach(r => attendance[r.member_id] = r.days);
+    attendanceDates = {};
+    (at.data || []).forEach(r => {
+      attendance[r.member_id] = r.days;
+      attendanceDates[r.member_id] = r.dates || [];
+    });
     render();
   } catch (err) {
     console.error(err);
@@ -1522,11 +1397,31 @@ function openCalendar(memberId) {
   calState.month = now.getMonth();
   calState.lastTap = null;
 
-  const existingDays = attendance[memberId] || 0;
+  const savedDates = attendanceDates[memberId] || [];
+  calState.initialDates = new Set();
   calState.selected = new Set();
-  const daysInMonth = new Date(calState.year, calState.month + 1, 0).getDate();
-  const upto = Math.min(existingDays, daysInMonth);
-  for (let d = 1; d <= upto; d++) calState.selected.add(d);
+
+  const currentMonthPrefix = calState.year + '-' + String(calState.month + 1).padStart(2, '0');
+
+  savedDates.forEach(dStr => {
+    if (dStr.startsWith(currentMonthPrefix)) {
+      const dayNum = parseInt(dStr.slice(8, 10), 10);
+      if (dayNum >= 1 && dayNum <= 31) {
+        calState.selected.add(dayNum);
+        calState.initialDates.add(dayNum);
+      }
+    }
+  });
+
+  if (savedDates.length === 0 && (attendance[memberId] || 0) > 0) {
+    const existingDays = attendance[memberId] || 0;
+    const daysInMonth = new Date(calState.year, calState.month + 1, 0).getDate();
+    const upto = Math.min(existingDays, daysInMonth);
+    for (let d = 1; d <= upto; d++) {
+      calState.selected.add(d);
+      calState.initialDates.add(d);
+    }
+  }
 
   document.getElementById('calTitle').textContent = 'Attendance — ' + getMemberName(memberId);
   document.getElementById('calModal').classList.add('open');
@@ -1611,15 +1506,31 @@ async function calSave() {
   if (!currentUser) return alert('Please login first');
   const memberId = calState.memberId;
   if (!memberId) return;
-  const days = calState.selected.size;
+
+  const year = calState.year;
+  const month = calState.month + 1;
+  const monthPrefix = year + '-' + String(month).padStart(2, '0');
+
+  const otherMonthDates = (attendanceDates[memberId] || []).filter(d => !d.startsWith(monthPrefix));
+  const thisMonthDates = Array.from(calState.selected).map(d => monthPrefix + '-' + String(d).padStart(2, '0'));
+  const allDates = otherMonthDates.concat(thisMonthDates).sort();
+
+  const totalDays = allDates.length;
 
   closeCalendar();
-  attendance[memberId] = days;
+  attendance[memberId] = totalDays;
+  attendanceDates[memberId] = allDates;
   render();
 
   try {
     const { error } = await db.from('attendance').upsert(
-      { member_id: memberId, days, user_id: currentUser.id, updated_at: new Date().toISOString() },
+      {
+        member_id: memberId,
+        days: totalDays,
+        dates: allDates,
+        user_id: currentUser.id,
+        updated_at: new Date().toISOString()
+      },
       { onConflict: 'member_id' }
     );
     if (error) throw error;
@@ -1818,10 +1729,8 @@ document.getElementById('advDate').value = today();
 document.getElementById('expDate').value = today();
 document.getElementById('expAddToAdvance').checked = false;
 
-// Check session on load
 checkSession();
 
-// Listen to auth state changes (session expiry, logout from another tab)
 db.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_OUT') {
     currentUser = null;
@@ -1831,7 +1740,6 @@ db.auth.onAuthStateChange((event, session) => {
   }
 });
 
-/* ========== PWA — Service Worker Register ========== */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
